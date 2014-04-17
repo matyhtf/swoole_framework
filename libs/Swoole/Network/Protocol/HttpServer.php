@@ -92,6 +92,12 @@ class HttpServer extends Swoole\Network\Protocol implements Swoole\Server\Protoc
     {
         $this->log("client[#$client_id@$from_id] close");
         unset($this->requests[$client_id]);
+        #DEBUG
+        if(defined('DEBUG') and DEBUG=='on')
+        {
+            //当是调试模式的时候,每次请求完都重启所有worker进程。
+            $serv->reload();
+        }
     }
 
     function loadSetting($ini_file)
