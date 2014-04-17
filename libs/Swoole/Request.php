@@ -26,7 +26,7 @@ class Request
         if($this->post) $_POST = $this->post;
         if($this->file) $_FILES = $this->file;
         if($this->cookie) $_COOKIE = $this->cookie;
-        $_REQUEST = array_merge($this->get, $this->post, $this->cookie);
+        $_REQUEST = array_merge($this->get, $this->post);
         $_SERVER["HTTP_HOST"] = $this->head['Host'];
         if (isset($this->head['User-Agent']))
         {
