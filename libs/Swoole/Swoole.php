@@ -513,7 +513,7 @@ function swoole_urlrouter_rewrite(&$uri)
     $match = array();
     foreach($rewrite as $rule)
     {
-        if(preg_match('#'.$rule['regx'].'#', $uri['path'], $match))
+        if(preg_match($rule['regx'], $uri['path'], $match))
         {
             //合并到GET中
             if(isset($rule['get']))
