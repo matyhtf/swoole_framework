@@ -242,7 +242,7 @@ class Swoole
 
     function __get($lib_name)
     {
-    	if(isset(self::$autoload_libs[$lib_name]) and empty($this->$lib_name))
+    	if(!isset(self::$autoload_libs[$lib_name]) and empty($this->$lib_name))
     	{
     		$this->$lib_name = $this->load->loadLib($lib_name);
     	}
