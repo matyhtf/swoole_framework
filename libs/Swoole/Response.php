@@ -50,7 +50,7 @@ class Response
         502 => 'Bad Gateway',
         503 => "503 Service Unavailable",
         504 => 'Gateway Timeout',
-        505 => 'HTTP Version Not Supported',ßßß
+        505 => 'HTTP Version Not Supported',
         506 => "506 Variant Also Negotiates",
     );
 
