@@ -72,7 +72,7 @@ class Model
      * 如果参数为空的话，则返回一条空白的Record，可以赋值，产生一条新的记录
      * @param $object_id
      * @param $where
-     * @return Record Object
+     * @return Record Object 
      */
     final public function get($object_id = 0, $where = '')
     {
