@@ -161,7 +161,7 @@ class SelectDB
      */
     public function useIndex($field)
     {
-        self::sqlSafe($field);
+        self::sql_safe($field);
         $this->use_index = "USE INDEX($field)";
     }
 
@@ -173,7 +173,7 @@ class SelectDB
      */
     public function like($field, $like)
     {
-        self::sqlSafe($field);
+        self::sql_safe($field);
         $this->where("`{$field}` LIKE '{$like}'");
     }
 
@@ -218,7 +218,7 @@ class SelectDB
     public function order($order)
     {
         if (!empty($order)) {
-            self::sqlSafe($order);
+            self::sql_safe($order);
             $this->order = "ORDER BY $order";
         } else {
             $this->order = '';
@@ -233,7 +233,7 @@ class SelectDB
     public function group($group)
     {
         if (!empty($group)) {
-            self::sqlSafe($group);
+            self::sql_safe($group);
             $this->group = "GROUP BY $group";
         } else {
             $this->group = '';
@@ -249,7 +249,7 @@ class SelectDB
     public function having($having)
     {
         if (!empty($having)) {
-            self::sqlSafe($having);
+            self::sql_safe($having);
             $this->having = "HAVING $having";
         } else {
             $this->having = '';
@@ -379,7 +379,7 @@ class SelectDB
      * @param $sql_sub
      * @return null
      */
-    public static function sqlSafe($sql_sub)
+    public static function sql_safe($sql_sub)
     {
         if (!preg_match(self::$allow_regx, $sql_sub)) {
             echo $sql_sub;
@@ -420,13 +420,13 @@ class SelectDB
         }
     }
 
-    public function rawPut($params)
+    public function raw_put($params)
     {
         foreach ($params as $array) {
             if (isset($array[0]) and isset($array[1]) and count($array) == 2) {
                 $this->_call($array[0], $array[1]);
             } else {
-                $this->rawPut($array);
+                $this->raw_put($array);
             }
         }
     }
