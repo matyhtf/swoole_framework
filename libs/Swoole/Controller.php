@@ -148,15 +148,17 @@ class Controller extends Object
 
         // 系统默认显示信息
         $_trace['请求脚本'] = $_SERVER['SCRIPT_NAME'];
-        $_trace['请求方法'] = $_SERVER['REQUEST_METHOD'];
+        $_trace['请求方法'] = $this->swoole->env['mvc']['controller'].'/'.$this->swoole->env['mvc']['view'];
         $_trace['USER_AGENT'] = $_SERVER['HTTP_USER_AGENT'];
         $_trace['HTTP版本'] = $_SERVER['SERVER_PROTOCOL'];
-        $_trace['请求时间'] = date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME']);
+        $_trace['请求时间'] = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
 
-        if(isset($_SESSION)) $_trace['SESSION_ID'] = session_id();
-        $_trace['读取数据库'] = $this->swoole->db->read_times.'次';
-        $_trace['写入数据库'] = $this->swoole->db->write_times.'次';
-
+        if (isset($_SESSION))
+        {
+            $_trace['SESSION_ID'] = session_id();
+        }
+        $_trace['读取数据库'] = $this->swoole->db->read_times . '次';
+        $_trace['写入数据库'] = $this->swoole->db->write_times . '次';
         $_trace['加载文件数目'] = count($included_files);
         $_trace['PHP执行占用'] = $this->showTime();
         $_trace = array_merge($this->trace,$_trace);
@@ -176,23 +178,23 @@ padding:			20px 20px 12px 20px;
 </style>
 	<div id="content">
 		<fieldset id="querybox" style="margin:5px;">
-		<div style="overflow:auto;height:300px;text-align:left;">
+		<div style="overflow:auto;height:800px;text-align:left;">
 HTMLS;
-        foreach ($_trace as $key=>$info)
+        foreach ($_trace as $key => $info)
         {
-            $html .= $key.' : '.$info.BL;
+            $html .= $key . ' : ' . $info . BL;
         }
-        if($detail)
+        if ($detail)
         {
             //输出包含的文件
-             $html .= '加载的文件'.BL;
+            $html .= '加载的文件' . BL;
             foreach ($included_files as $file)
             {
-                 $html .= 'require '.$file.BL;
+                $html .= 'require ' . $file . BL;
             }
         }
-         $html .= "</div></fieldset></div>";
-         return $html;
+        $html .= "</div></fieldset></div>";
+        return $html;
     }
 
     function __destruct()

@@ -33,6 +33,7 @@ abstract class Socket
 
     const ERR_RECV_TIMEOUT = 11; //接收数据超时，server端在规定的时间内没回包
     const ERR_INPROGRESS   = 115; //正在处理中
+
     /**
      * 错误信息赋值
      */

@@ -58,7 +58,7 @@ class Model
      * @param $id
      * @return null
      */
-    public function shardTable($id)
+    public function shard_table($id)
     {
         if (empty($this->_table_before_shard)) {
             $this->_table_before_shard = $this->table;

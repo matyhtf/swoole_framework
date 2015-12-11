@@ -140,4 +140,13 @@ class TCP extends Socket
         }
         $this->sock = null;
     }
+
+    /**
+     * 是否连接到服务器
+     * @return bool
+     */
+    function isConnected()
+    {
+        return $this->connected;
+    }
 }

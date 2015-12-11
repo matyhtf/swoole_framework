@@ -67,19 +67,19 @@ class Swoole
      * 可使用的组件
      */
     static $modules = array(
-        'redis' => true, //redis
-        'mongo' => true, //mongodb
-        'db' => true, //数据库
-        'tpl' => true, //模板系统
-        'cache' => true, //缓存
-        'event' => true, //异步事件
-        'log' => true, //日志
-        'upload' => true, //上传组件
-        'user' => true, //用户验证组件
+        'redis'   => true, //redis
+        'mongo'   => true, //mongodb
+        'db'      => true, //数据库
+        'tpl'     => true, //模板系统
+        'cache'   => true, //缓存
+        'event'   => true, //异步事件
+        'log'     => true, //日志
+        'upload'  => true, //上传组件
+        'user'    => true, //用户验证组件
         'session' => true, //session
-        'http' => true, //http
-        'url' => true, //urllib
-        'limit' => true, //频率限制组件
+        'http'    => true, //http
+        'url'     => true, //urllib
+        'limit'   => true, //频率限制组件
     );
 
     /**
@@ -88,19 +88,19 @@ class Swoole
      */
     static $multi_instance = array(
         'cache' => true,
-        'db' => true,
+        'db'    => true,
         'mongo' => true,
         'redis' => true,
-        'url' => true,
-        'log' => true,
+        'url'   => true,
+        'log'   => true,
     );
 
     static $default_controller = array('controller' => 'page', 'view' => 'index');
 
     static $charset = 'utf-8';
-    static $debug = false;
+    static $debug   = false;
 
-    static $setting = array();
+    static $setting    = array();
     public $error_call = array();
     /**
      * Swoole类的实例
@@ -134,7 +134,7 @@ class Swoole
     protected $hooks = array();
     protected $router_function;
 
-    const HOOK_INIT = 1; //初始化
+    const HOOK_INIT  = 1; //初始化
     const HOOK_ROUTE = 2; //URL路由
     const HOOK_CLEAN = 3; //清理
 
@@ -162,8 +162,8 @@ class Swoole
         //将此目录作为App命名空间的根目录
         Swoole\Loader::addNameSpace('App', self::$app_path . '/classes');
 
-        $this->load = new Swoole\Loader($this);
-        $this->model = new Swoole\ModelLoader($this);
+        $this->load   = new Swoole\Loader($this);
+        $this->model  = new Swoole\ModelLoader($this);
         $this->config = new Swoole\Config;
         $this->config->setPath(self::$app_path . '/configs');
 
@@ -196,8 +196,8 @@ class Swoole
         // 显示运行时间
         $return['time'] = number_format((microtime(true) - $this->env['runtime']['start']), 4) . 's';
 
-        $startMem = array_sum(explode(' ', $this->env['runtime']['mem']));
-        $endMem = array_sum(explode(' ', memory_get_usage()));
+        $startMem         = array_sum(explode(' ', $this->env['runtime']['mem']));
+        $endMem           = array_sum(explode(' ', memory_get_usage()));
         $return['memory'] = number_format(($endMem - $startMem) / 1024) . 'kb';
         return $return;
     }
@@ -230,7 +230,7 @@ class Swoole
             //            set_error_handler('swoole_error_handler');
             #记录运行时间和内存占用情况
             $this->env['runtime']['start'] = microtime(true);
-            $this->env['runtime']['mem'] = memory_get_usage();
+            $this->env['runtime']['mem']   = memory_get_usage();
         }
         $this->callHook(self::HOOK_INIT);
     }
@@ -402,7 +402,7 @@ class Swoole
         $php = Swoole::getInstance();
 
         //将对象赋值到控制器
-        $php->request = $request;
+        $php->request  = $request;
         $php->response = $response;
 
         try
@@ -424,7 +424,8 @@ class Swoole
         }
 
         //重定向
-        if (isset($response->head['Location'])) {
+        if (isset($response->head['Location']) and ($response->http_status < 300 or $response->http_status > 399))
+        {
             $response->setHttpStatus(301);
         }
         return $response;
@@ -434,7 +435,7 @@ class Swoole
     {
         define('SWOOLE_SERVER', true);
         $this->ext_http_server = $this->http = new Swoole\Http\ExtServer();
-        $server = new swoole_http_server($host, $port);
+        $server                = new swoole_http_server($host, $port);
         $server->set($config);
         if (!empty($config['document_root'])) {
             $this->ext_http_server->document_root = trim($config['document_root']);
@@ -503,7 +504,7 @@ class Swoole
             return Swoole\Error::info('MVC Error!' . $mvc['view'], "View <b>{$mvc['controller']}->{$mvc['view']}</b> Not Found!");
         }
 
-        $param = empty($mvc['param']) ? null : $mvc['param'];
+        $param  = empty($mvc['param']) ? null : $mvc['param'];
         $method = $mvc['view'];
 
         //doAction
@@ -549,7 +550,7 @@ function swooleUrlrouterRewrite(&$uri)
     if (empty($rewrite) or !is_array($rewrite)) {
         return false;
     }
-    $match = array();
+    $match        = array();
     $uri_for_regx = '/' . $uri;
     foreach ($rewrite as $rule) {
         if (preg_match('#' . $rule['regx'] . '#i', $uri_for_regx, $match)) {
@@ -581,17 +582,17 @@ function swooleUrlrouterMvc(&$uri)
         return $array;
     }
     $array['controller'] = $request[0];
-    $array['view'] = $request[1];
+    $array['view']       = $request[1];
     if (isset($request[2])) {
         $request[2] = trim($request[2], '/');
-        $_id = str_replace('.html', '', $request[2]);
+        $_id        = str_replace('.html', '', $request[2]);
         if (is_numeric($_id)) {
             $_GET['id'] = $_id;
         } else {
-            Swoole\Tool::$url_key_join = '-';
+            Swoole\Tool::$url_key_join   = '-';
             Swoole\Tool::$url_param_join = '-';
-            Swoole\Tool::$url_add_end = '.html';
-            Swoole\Tool::$url_prefix = WEBROOT . "/{$request[0]}/$request[1]/";
+            Swoole\Tool::$url_add_end    = '.html';
+            Swoole\Tool::$url_prefix     = WEBROOT . "/{$request[0]}/$request[1]/";
             Swoole\Tool::url_parse_into($request[2], $_GET);
         }
         $_REQUEST = array_merge($_REQUEST, $_GET);

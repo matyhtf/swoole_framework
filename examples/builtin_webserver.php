@@ -5,7 +5,7 @@ require WEBPATH . '/libs/lib_config.php';
 
 $config = array(
     'document_root' => WEBPATH,
-    'worker_num' => 4,
+    'worker_num' => 100,
     'max_request' => 5000,
     'log_file' => '/tmp/swoole.log',
 );

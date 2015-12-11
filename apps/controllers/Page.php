@@ -8,7 +8,8 @@ class Page extends Swoole\Controller
     //hello world
     function index()
     {
-        return "default page";
+        $this->http->header('Content-Type', 'text/html; charset=UTF-8');
+        return $this->showTrace(true);
     }
 
     function detail()

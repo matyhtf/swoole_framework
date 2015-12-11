@@ -686,10 +686,8 @@ class SelectDB
         $values = implode(',', $values);
         $stmp   = $this->db->prepare("INSERT INTO {$this->table} ($field) VALUES($values)");
 
-        if ($stmp->execute($params)) {
-            return $this->db->lastInsertId();
-        }
-        return false;
+        return $stmp->execute($params);
+           
     }
 
     /**

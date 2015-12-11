@@ -243,8 +243,6 @@ class SOAServer extends Base implements Swoole\IFace\Protocol
         //socket信息
         self::$clientEnv['_socket'] = $this->server->connection_info($header['fd']);
 
-        var_dump($request);
-
         $ret = call_user_func_array($request['call'], $request['params']);
         if ($ret === false)
         {

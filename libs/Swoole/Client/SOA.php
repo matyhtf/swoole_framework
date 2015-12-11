@@ -15,10 +15,11 @@ class SOA
      * @var int
      */
     protected $currentServerId;
+    protected $requestIndex = 0;
 
     protected $env = array();
 
-    protected $wait_list = array();
+    protected $waitList = array();
     protected $timeout = 0.5;
     protected $packet_maxlen = 2097152;   //最大不超过2M的数据包
 
@@ -26,10 +27,11 @@ class SOA
      * 启用长连接
      * @var bool
      */
-    protected $keep_connection = false;
+    protected $keepConnection = false;
+
+    protected $useSwoole = true;
 
     const OK = 0;
-    public $re_connect      = true;    //重新connect
 
     protected static $_instances = array();
 
@@ -37,6 +39,7 @@ class SOA
     {
         $key = empty($id) ? 'default' : $id;
         self::$_instances[$key] = $this;
+        $this->useSwoole = extension_loaded('swoole');
     }
 
     /**
@@ -74,13 +77,67 @@ class SOA
      */
     static function getRequestId()
     {
-        list($us) = explode(' ', microtime());
-        return intval(strval($us * 1000 * 1000) . rand(100000, 999999));
+        $us = strstr(microtime(), ' ', true);
+        return intval(strval($us * 1000 * 1000) . rand(100, 999));
+    }
+
+    /**
+     * 连接到服务器
+     * @param SOA_Result $retObj
+     * @return bool
+     * @throws \Exception
+     */
+    protected function connectToServer(SOA_Result $retObj)
+    {
+        $ret = false;
+        //循环连接
+        while (count($this->servers) > 0)
+        {
+            $svr = $this->getServer();
+            if (!$this->useSwoole)
+            {
+                $socket = new TCP;
+                $socket->try_reconnect = false;
+                $ret = $socket->connect($svr['host'], $svr['port'], $this->timeout);
+                $socketFd = intval($socket->get_socket());
+            }
+            else
+            {
+                $key = $svr['host'].':'.$svr['port'].'-'.$retObj->index;
+                $socket = new \swoole_client(SWOOLE_SOCK_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC, $key);
+                $socket->set(array(
+                    'open_length_check' => true,
+                    'package_max_length' => $this->packet_maxlen,
+                    'package_length_type' => 'N',
+                    'package_body_offset' => SOAServer::HEADER_SIZE,
+                    'package_length_offset' => 0,
+                ));
+                $ret = $socket->connect($svr['host'], $svr['port'], $this->timeout);
+                $socketFd = $socket->sock;
+            }
+
+            //连接被拒绝，证明服务器已经挂了
+            //TODO 如果连接失败，需要上报机器存活状态
+            if ($ret === false and $socket->errCode == 111)
+            {
+                $this->onConnectServerFailed($svr);
+                unset($socket);
+            }
+            else
+            {
+                $retObj->socket = $socket;
+                $retObj->server_host = $svr['host'];
+                $retObj->server_port = $svr['port'];
+                //使用SOCKET的编号作为ID
+                $retObj->id = $socketFd;
+                break;
+            }
+        }
+        return $ret;
     }
 
     /**
      * 发送请求
-     * @param $type
      * @param $send
      * @param SOA_result $retObj
      * @return bool
@@ -88,42 +145,12 @@ class SOA
     protected function request($send, $retObj)
     {
         $retObj->send = $send;
-
         $this->beforeRequest($retObj);
 
-        $ret = false;
-        $socket = null;
-        $svr = null;
-
-        //循环连接
-        while (count($this->servers) > 0)
-        {
-            $svr = $this->getServer();
-            $socket = new TCP;
-            $socket->try_reconnect = false;
-            $ret = $socket->connect($svr['host'], $svr['port'], $this->timeout);
-            //连接被拒绝，证明服务器已经挂了
-            //TODO 如果连接失败，需要上报机器存活状态
-            if ($ret === false and $socket->errCode == 111)
-            {
-                $this->onConnectServerFailed($svr);
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        $retObj->socket = $socket;
-        $retObj->server_host = $svr['host'];
-        $retObj->server_port = $svr['port'];
-
-        //使用SOCKET的编号作为ID
-        $retObj->id = (int)$socket->get_socket();
-        if ($ret === false)
+        $retObj->index = $this->requestIndex ++;
+        if ($this->connectToServer($retObj) === false)
         {
             $retObj->code = SOA_Result::ERR_CONNECT;
-            unset($retObj->socket);
             return false;
         }
         //请求串号
@@ -136,7 +163,7 @@ class SOA
             return false;
         }
         //加入wait_list
-        $this->wait_list[$retObj->id] = $retObj;
+        $this->waitList[$retObj->id] = $retObj;
         return true;
     }
 
@@ -192,7 +219,7 @@ class SOA
             $retObj->code = $retData['errno'];
             $retObj->data = null;
         }
-        unset($this->wait_list[$retObj->id]);
+        unset($this->waitList[$retObj->id]);
         //执行after钩子函数
         $this->afterRequest($retObj);
         //执行回调函数
@@ -216,6 +243,15 @@ class SOA
         {
             $this->servers = array_merge($this->servers, $servers);
         }
+    }
+
+    /**
+     * 设置服务器
+     * @param array $servers
+     */
+    function setServers(array $servers)
+    {
+        $this->servers = $servers;
     }
 
     /**
@@ -269,6 +305,86 @@ class SOA
         return $retObj;
     }
 
+    protected function recvWaitForSwoole($timeout)
+    {
+        $st = microtime(true);
+        $success_num = 0;
+
+        while (true)
+        {
+            $write = $error = $read = array();
+            if (empty($this->waitList))
+            {
+                break;
+            }
+            foreach ($this->waitList as $obj)
+            {
+                if ($obj->socket !== null)
+                {
+                    $read[] = $obj->socket;
+                }
+            }
+            if (empty($read))
+            {
+                break;
+            }
+
+            $n = swoole_client_select($read, $write, $error, $timeout);
+            if ($n > 0)
+            {
+                //可读
+                foreach($read as $sock)
+                {
+                    $id = $sock->sock;
+
+                    /**
+                     * @var $retObj SOA_Result
+                     */
+                    $retObj = $this->waitList[$id];
+                    $data = $retObj->socket->recv();
+                    //socket被关闭了
+                    if (empty($data))
+                    {
+                        $retObj->code = SOA_Result::ERR_CLOSED;
+                        unset($this->waitList[$id], $retObj->socket);
+                        continue;
+                    }
+                    else
+                    {
+                        $header = unpack(SOAServer::HEADER_STRUCT, substr($data, 0, SOAServer::HEADER_SIZE));
+                        //串号不一致，丢弃结果
+                        if ($header['serid'] != $retObj->requestId)
+                        {
+                            trigger_error(__CLASS__." requestId[{$retObj->requestId}]!=responseId[{$header['serid']}]", E_USER_WARNING);
+                            continue;
+                        }
+                        //成功处理
+                        $this->finish(SOAServer::decode(substr($data, SOAServer::HEADER_SIZE), $header['type']), $retObj);
+                        $success_num++;
+                    }
+                }
+            }
+            //发生超时
+            if ((microtime(true) - $st) > $timeout)
+            {
+                foreach ($this->waitList as $obj)
+                {
+                    $obj->code = ($obj->socket->isConnected()) ? SOA_Result::ERR_TIMEOUT : SOA_Result::ERR_CONNECT;
+                    //执行after钩子函数
+                    $this->afterRequest($obj);
+                }
+                //清空当前列表
+                $this->waitList = array();
+                return $success_num;
+            }
+        }
+
+        //未发生任何超时
+        $this->waitList = array();
+        $this->requestIndex = 0;
+        return $success_num;
+    }
+
     /**
      * 并发请求
      * @param float $timeout
@@ -276,6 +392,11 @@ class SOA
      */
     function wait($timeout = 0.5)
     {
+        if ($this->useSwoole)
+        {
+            return $this->recvWaitForSwoole($timeout);
+        }
+
         $st = microtime(true);
         $t_sec = (int)$timeout;
         $t_usec = (int)(($timeout - $t_sec) * 1000 * 1000);
@@ -285,11 +406,11 @@ class SOA
         while (true)
         {
             $write = $error = $read = array();
-            if(empty($this->wait_list))
+            if(empty($this->waitList))
             {
                 break;
             }
-            foreach($this->wait_list as $obj)
+            foreach($this->waitList as $obj)
             {
                 if($obj->socket !== null)
                 {
@@ -301,7 +422,7 @@ class SOA
                 break;
             }
             $n = socket_select($read, $write, $error, $t_sec, $t_usec);
-            if($n > 0)
+            if ($n > 0)
             {
                 //可读
                 foreach($read as $sock)
@@ -311,13 +432,13 @@ class SOA
                     /**
                      * @var $retObj SOA_Result
                      */
-                    $retObj = $this->wait_list[$id];
+                    $retObj = $this->waitList[$id];
                     $data = $retObj->socket->recv();
                     //socket被关闭了
                     if (empty($data))
                     {
                         $retObj->code = SOA_Result::ERR_CLOSED;
-                        unset($this->wait_list[$id], $retObj->socket);
+                        unset($this->waitList[$id], $retObj->socket);
                         continue;
                     }
                     //一个新的请求，缓存区中没有数据
@@ -329,14 +450,14 @@ class SOA
                         if ($header[$id] === false or $header[$id]['length'] <= 0)
                         {
                             $retObj->code = SOA_Result::ERR_HEADER;
-                            unset($this->wait_list[$id]);
+                            unset($this->waitList[$id]);
                             continue;
                         }
                         //错误的长度值
                         elseif ($header[$id]['length'] > $this->packet_maxlen)
                         {
                             $retObj->code = SOA_Result::ERR_TOOBIG;
-                            unset($this->wait_list[$id]);
+                            unset($this->waitList[$id]);
                             continue;
                         }
                         $buffer[$id] = substr($data, SOAServer::HEADER_SIZE);
@@ -348,7 +469,12 @@ class SOA
                     //达到规定的长度
                     if (strlen($buffer[$id]) == $header[$id]['length'])
                     {
-                        $retObj->responseId = $header[$id]['serid'];
+                        //请求串号与响应串号不一致
+                        if ($retObj->requestId != $header[$id]['serid'])
+                        {
+                            trigger_error(__CLASS__." requestId[{$retObj->requestId}]!=responseId[{$header['serid']}]", E_USER_WARNING);
+                            continue;
+                        }
                         //成功处理
                         $this->finish(SOAServer::decode($buffer[$id], $header[$id]['type']), $retObj);
                         $success_num++;
@@ -359,7 +485,7 @@ class SOA
             //发生超时
             if ((microtime(true) - $st) > $timeout)
             {
-                foreach($this->wait_list as $obj)
+                foreach($this->waitList as $obj)
                 {
                     //TODO 如果请求超时了，需要上报服务器负载
                     $obj->code = ($obj->socket->connected) ? SOA_Result::ERR_TIMEOUT : SOA_Result::ERR_CONNECT;
@@ -367,12 +493,13 @@ class SOA
                     $this->afterRequest($obj);
                 }
                 //清空当前列表
-                $this->wait_list = array();
+                $this->waitList = array();
                 return $success_num;
             }
         }
         //未发生任何超时
-        $this->wait_list = array();
+        $this->waitList = array();
+        $this->requestIndex = 0;
         return $success_num;
     }
 
@@ -391,16 +518,12 @@ class SOA_Result
     public $data = null;
     public $send;  //要发送的数据
     public $type;
+    public $index;
 
     /**
      * 请求串号
      */
     public $requestId;
-
-    /**
-     * 响应串号
-     */
-    public $responseId;
 
     /**
      * 回调函数

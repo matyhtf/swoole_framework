@@ -26,7 +26,8 @@ class Auth
 
     static $lastlogin = 'lastlogin';
     static $lastip = 'lastip';
-    static $session_prefix = 'swoole_auth_';
+    static $session_prefix = '';
+    static $mk_password = 'username,password';
     static $password_hash = 'sha1';
 
     static $password_cost = 10;
@@ -36,8 +37,9 @@ class Auth
     static $session_destroy = false;
 
     protected $config;
-    protected $login_table = 'user';
-    protected $login_db = 'master';
+    protected $login_table = '';
+    protected $login_db = '';
+    protected $profile_table = '';
 
     const ERR_NO_EXIST = 1;
     const ERR_PASSWORD = 2;
@@ -48,17 +50,21 @@ class Auth
     public function __construct($config)
     {
         $this->config = $config;
-        $publicProperty = array_keys(get_object_vars($this));
-        foreach ($config as $key => $value) {
-            if (property_exists($this, $key) && in_array($key, $publicProperty)) {
-                $this->$key = $value;
-            } elseif (property_exists('Auth', $key)) {
-                self::$key = $value;
-            }
+        if (empty($config['login_table']))
+        {
+            throw new \Exception(__CLASS__ . ' request login_table config.');
+        }
+        if (!empty($config['login_db']))
+        {
+            $this->login_db = $config['login_db'];
+        }
+        else
+        {
+            $this->login_db = 'master';
         }
 
+        $this->login_table = $config['login_table'];
         $this->db = \Swoole::$php->db($this->login_db);
-
         $_SESSION[self::$session_prefix . 'save_key'] = array();
     }
 
@@ -247,7 +253,7 @@ class Auth
             if (!function_exists('password_verify')) {
                 throw new \Exception("require password_verify function.");
             }
-            return password_verify($username . $input_password, $real_password);
+            return password_verify($input_password, $real_password);
         } else {
             $pwd_hash = self::makePasswordHash($username, $input_password);
             return $real_password == $pwd_hash;
@@ -276,7 +282,7 @@ class Auth
                 'cost' => self::$password_cost,
                 'salt' => mcrypt_create_iv(self::$password_salt_size, MCRYPT_DEV_URANDOM),
             ];
-            return password_hash($username . $password, PASSWORD_BCRYPT, $options);
+            return password_hash($password, PASSWORD_BCRYPT, $options);
         }
         //md5 用户名+密码
         elseif (self::$password_hash == 'md5') {

@@ -11,11 +11,11 @@ class UDP extends Socket
     /**
      * 连接到服务器
      * 接受一个浮点型数字作为超时，整数部分作为sec，小数部分*100万作为usec
-     *
      * @param string $host 服务器地址
      * @param int $port 服务器地址
      * @param float $timeout 超时默认值，连接，发送，接收都使用此设置
      * @param bool $udp_connect 是否启用connect方式
+     * @return bool
      */
     function connect($host, $port, $timeout = 0.1, $udp_connect = true)
     {

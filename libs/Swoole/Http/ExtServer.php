@@ -109,7 +109,10 @@ class ExtServer implements Swoole\IFace\Http
         }
         if (isset($this->request->server))
         {
-            $_SERVER = $this->request->server;
+            foreach($this->request->server as $key => $value)
+            {
+                $_SERVER[strtoupper($key)] = $value;
+            }
         }
         else
         {
@@ -169,16 +172,8 @@ class ExtServer implements Swoole\IFace\Http
                 /*---------------------处理MVC----------------------*/
                 $body = $php->runMVC();
                 $echo_output = ob_get_contents();
-                if ($echo_output)
-                {
-                    $resp->write($echo_output);
-                }
-                if ($body)
-                {
-                    $resp->write($body);
-                }
                 ob_end_clean();
-                $resp->end();
+                $resp->end($echo_output.$body);
             }
             catch (Swoole\ResponseException $e)
             {
