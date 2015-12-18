@@ -37,37 +37,28 @@ function createModel($model_name)
 /**
  * 生产一个model接口，模型在注册树上为单例
  * @param $model_name
+ * @param $db_key
  * @return Swoole\Model
  */
-function model($model_name)
+function model($model_name, $db_key = 'master')
 {
-    global $php;
-    return $php->model->$model_name;
+    return Swoole::getInstance()->model->$model_name($db_key);
 }
 
 /**
  * 传入一个数据库表，返回一个封装此表的Model接口
  * @param $table_name
+ * @param $db_key
  * @return Swoole\Model
  */
-function table($table_name, $db_id = 'master')
+function table($table_name, $db_key = 'master')
 {
-    global $php;
-    if (isset($php->model->_models[$table_name]))
-    {
-        return $php->model->$table_name;
-    }
-    else
-    {
-        $model = new Swoole\Model($php, $db_id);
-        $model->table = $table_name;
-        $php->model->_models[$table_name] = $model;
-        return $model;
-    }
+    return Swoole::getInstance()->model->loadTable($table_name, $db_key);
 }
 
 /**
  * 开启会话
+ * @param $readonly
  */
 function session($readonly = false)
 {

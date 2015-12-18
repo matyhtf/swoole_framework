@@ -30,9 +30,9 @@ class CURL
      * @access private
      * @var string
      */
-    public $errMsg;
+    public $errMsg = '';
 
-    public $errCode;
+    public $errCode = 0;
     public $httpCode;
 
     protected $httpMethod;

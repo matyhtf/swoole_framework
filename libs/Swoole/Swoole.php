@@ -126,9 +126,11 @@ class Swoole
     public $error_callback;
 
     public $load;
+
+    /**
+     * @var \Swoole\ModelLoader
+     */
     public $model;
-    public $plugin;
-    public $genv;
     public $env;
 
     protected $hooks = array();

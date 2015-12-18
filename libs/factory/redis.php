@@ -22,23 +22,5 @@ if (empty($config['timeout']))
     $config['timeout'] = 0.5;
 }
 
-$redis = new Redis();
-if($config['pconnect'])
-{
-    $redis->pconnect($config['host'], $config['port'], $config['timeout']);
-}
-else
-{
-    $redis->connect($config['host'], $config['port'], $config['timeout']);
-}
-
-if (!empty($config['password']))
-{
-    $redis->auth($config['password']);
-}
-
-if (!empty($config['database']))
-{
-    $redis->select($config['database']);
-}
+$redis = new \Swoole\Redis($config);
 return $redis;

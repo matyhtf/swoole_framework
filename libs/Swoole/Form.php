@@ -14,6 +14,7 @@ class Form
 {
     static $checkbox_value_split = ',';
     static $default_help_option = '请选择';
+
     /**
      * 根据数组，生成表单
      * @param $form_array
@@ -348,7 +349,7 @@ class Form
 	 * @param $name
 	 * @param $value
 	 * @param $attrArray
-	 * @return unknown_type
+	 * @return string
 	 */
     static function text($name,$value='',$attrArray=null)
 	{
@@ -358,32 +359,20 @@ class Form
 		$forms = "<textarea name='{$name}' id='{$name}' $attrStr>$value</textarea>";
 		return $forms;
 	}
-    /**
-     * HTML文本编辑器
-     * @param $name
-     * @param $value
-     * @param $attrArray
-     * @return unknown_type
-     */
-	static function htmltext($name,$value='',$attrArray=null)
-	{
-		if(!isset($attrArray['height'])) $attrArray['height'] = 480;
-		global $php;
-		$php->plugin->load('fckeditor');
-		return editor($name,$value,$attrArray['height']);
-	}
+
 	/**
      * 隐藏项
      * @param $name
      * @param $value
      * @param $attrArray
-     * @return unknown_type
+     * @return string
      */
 	static function hidden($name,$value='',$attrArray=null)
 	{
 	    $attrStr = self::input_attr($attrArray);
 		return "<input type='hidden' name='{$name}' id='{$name}' value='{$value}' {$attrStr} />";
 	}
+
 	/**
 	 * 表单头部
 	 * @param $form_name
@@ -391,7 +380,7 @@ class Form
 	 * @param $action
 	 * @param $if_upload
 	 * @param $attrArray
-	 * @return unknown_type
+	 * @return string
 	 */
 	static function head($form_name,$method='post',$action='',$if_upload=false,$attrArray=null)
 	{
@@ -403,54 +392,24 @@ class Form
 	 * 设置Form Secret防止，非当前页面提交数据
 	 * @param $page_name
 	 * @param $return
-	 * @return unknown_type
+	 * @return string
 	 */
-	static function secret($page_name='',$length=32,$return=false)
-	{
-	    $secret = uniqid(RandomKey::string($length));
-	    if($return) return $secret;
-	    else
-	    {
-	        $k = 'form_'.$page_name;
-	        setcookie($k,$secret,0,'/');
-	        if(!isset($_SESSION)) session();
-	        $_SESSION[$k] = $secret;
-	    }
-	}
-	/**
-	 * JS验证
-	 * @param $form_name
-	 * @return unknown_type
-	 */
-    static function js($form_name,$each=false)
+    static function secret($page_name = '', $length = 32, $return = false)
     {
-        $js = "window.onload = function(){\n validator(\"$form_name\");\n";
-        if($each) $js.="validator_each(\"$form_name\");\n";
-        $js .= "};\n";
-        return JS::echojs($js,true);
+        $secret = uniqid(RandomKey::string($length));
+        if ($return)
+        {
+            return $secret;
+        }
+        else
+        {
+            $k = 'form_' . $page_name;
+            setcookie($k, $secret, 0, '/');
+            if (!isset($_SESSION))
+            {
+                session();
+            }
+            $_SESSION[$k] = $secret;
+        }
     }
-	/* ---------------特殊方法-------------------- */
-	static function date_picker()
-	{
-
-	}
-
-	static function time_picker()
-	{
-
-	}
-
-	static public function areaProvince($nameprovince,$namecity,$value='')
-	{
-		if(intval($value)<=-1 or empty($value)) $value = 10100000;
-		$forms="<script>getProvinceSelect43rds('','{$nameprovince}','{$nameprovince}','{$namecity}','','{$value}');</script>";
-		return $forms;
-	}
-
-	static public function areaCity($name,$value='')
-	{
-		if($value==='0') $value='';
-		$forms= "<script>getCitySelect43rds('','$name','$name','','{$value}');</script>";
-		return $forms;
-	}
 }
