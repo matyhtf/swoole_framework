@@ -49,7 +49,7 @@ class ModelLoader
      * @return mixed
      * @throws Error
      */
-    protected function loadModel($model_name, $db_key)
+    public function loadModel($model_name, $db_key = 'master')
     {
         if (isset($this->_models[$db_key][$model_name]))
         {
@@ -75,7 +75,7 @@ class ModelLoader
      * @param $db_key
      * @return Model
      */
-    public function loadTable($table_name, $db_key)
+    public function loadTable($table_name, $db_key = 'master')
     {
         if (isset($this->_tables[$db_key][$table_name]))
         {

@@ -11,16 +11,29 @@ namespace Swoole\Client;
 use Swoole\CLPack;
 
 class CLMySQL {
-	private $conn, $dbname, $pack, $result = array(), $result_id = 1;
+	private $conn, $dbname, $result = array(), $result_id = 1;
 	private $host, $port;
 	public $last_errno, $last_erro_msg, $is_connect = false;
 
 	function __construct($host, $port, $dbname, $pconnect = true) {
-		$this->pack = new CLPack();
 		$this->host = $host;
 		$this->port = $port;
 		$this->dbname = $dbname;
 		$this->conn = new \swoole_client($pconnect ? (SWOOLE_SOCK_TCP | SWOOLE_KEEP) : SWOOLE_SOCK_TCP);
+		$this->conn->set(array(
+			'open_length_check' => 1,
+			'package_length_type' => 'N',
+			'package_length_offset' => 0,
+			//第N个字节是包长度的值
+			'package_body_offset' => 8,
+			//第几个字节开始计算长度
+			'package_max_length' => CLPack::MAX_LEN,
+			//协议最大长度
+		));
+		$this->conn->on('Close', array(
+			$this,
+			'OnClose'
+		));
 		if (!$this->connect()) {
 			throw new \Exception("数据库连接失败 $host,$port,$dbname");
 		}
@@ -32,50 +45,40 @@ class CLMySQL {
 	}
 
 	function connect() {
-		$this->pack->reset();
 		$this->is_connect = $this->conn->connect($this->host, $this->port);
 		return $this->is_connect;
 	}
 
-	function getPack() {
+	function getPack($sign) {
 		while (1) {
-			$data = $this->conn->recv();
+			$data = @$this->conn->recv();
 			if ($data == false) {
 				throw new \Exception('连接Mysql网络中断');
 			}
-			$r = $this->pack->unpack($data);
-			if ($r === false) {
-				#包错误，断线重试
-				#echo "包错误\n";
-				$this->conn->close();
-				return false;
-			}
-			if ($r) {
-				return $r;
+			$r = CLPack::unpack($data);
+			if ($r && $r[0] === $sign) {
+				return $r[1];
 			}
 		}
 	}
 
 	function query($sql) {
 		$is_multi = true;
+		$sign = mt_rand();
 		if (!is_array($sql)) {
 			$is_multi = false;
-			$sql = [$this->dbname => $sql];
+			$sql = array($this->dbname => $sql);
 		}
-		if (false === $this->conn->send(CLPack::pack($sql))) {
+		if (false === $this->conn->send(CLPack::pack($sql, $sign))) {
 			$this->conn->close();
 			$this->connect();
-			if (false === $this->conn->send(CLPack::pack($sql))) {
+			if (false === $this->conn->send(CLPack::pack($sql, $sign))) {
 				{
 					throw new \Exception('连接Mysql网络中断');
 				}
 			}
 		}
-		$r = $this->getPack();
-		if ($r === false) {
-			$this->last_errno = 1;
-			$this->last_erro_msg = $this->pack->last_err;
-		}
+		$r = $this->getPack($sign);
 		foreach ($r as $k => $v) {
 			if ($v[0] != 0) {
 				$this->last_errno = $v[0];
@@ -86,19 +89,6 @@ class CLMySQL {
 
 		$result_id = $this->result_id++;
 		$this->result[$result_id] = $r;
-		/*if ($r && !$is_multi) {
-			if (!isset($r[$this->dbname])) {
-				return false;
-			} else {
-				if ($r[$this->dbname][0] == 0) {
-					return $r[$this->dbname][1];
-				} else {
-					$this->last_errno = $r[$this->dbname][0];
-					$this->last_erro_msg = $r[$this->dbname][1];
-					return false;
-				}
-			}
-		}*/
 		return $result_id;
 	}
 
@@ -145,15 +135,17 @@ class CLMySQL {
 	}
 
 	function insert_id() {
-		return $this->query('insert_id');
+		$result_id = $this->query('insert_id');
+		return $this->fetch($result_id);
 	}
 
 	function affected_rows() {
-		return $this->query('affected_rows');
+		$result_id = $this->query('affected_rows');
+		return $this->fetch($result_id);
 	}
 
-	function reload() {
-		$this->conn->send(CLPack::pack(CLPack::CMD_reload));
-		return $this->getPack();
+	function onClose(\swoole_client $client) {
+		//连接中断
+		throw new \Exception("clmysql连接被中断");
 	}
 }

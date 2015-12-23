@@ -7,6 +7,7 @@ namespace Swoole;
  *
  * @package Swoole
  * @property Database            $db
+ * @property Client\CoMySQL      $codb
  * @property IFace\Cache         $cache
  * @property Upload              $upload
  * @property Event               $event
@@ -20,11 +21,12 @@ namespace Swoole;
  * @property Auth                $user
  * @property URL                 $url
  * @property Limit               $limit
- *          @method Database     db
- *          @method \MongoClient mongo
- *          @method \redis       redis
- *          @method IFace\Cache  cache
- *          @method URL          url
+ * @method Database              db
+ * @method \MongoClient          mongo
+ * @method \redis                redis
+ * @method IFace\Cache           cache
+ * @method URL                   url
+ * @method Client\CoMySQL        codb
  */
 class Object
 {

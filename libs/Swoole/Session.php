@@ -1,5 +1,6 @@
 <?php
 namespace Swoole;
+
 /**
  * 会话控制类
  * 通过SwooleCache系统实现会话控制，可支持FileCache,DBCache,Memcache以及更多
@@ -10,9 +11,9 @@ namespace Swoole;
 class Session
 {
     // 类成员属性定义
-    static $cache_prefix = "phpsess_";
+    static $cache_prefix    = "phpsess_";
     static $cookie_lifetime = 86400000;
-    static $cache_lifetime = 0;
+    static $cache_lifetime  = 0;
 
     /**
      * 是否启动
@@ -24,15 +25,14 @@ class Session
     public $open;
     protected $cache;
 
-
     /**
      * 使用PHP内建的SESSION
      * @var bool
      */
-    public $use_php_session =  true;
+    public $use_php_session = true;
 
-    static $sess_size = 32;
-    static $sess_name = 'SESSID';
+    static $sess_size  = 32;
+    static $sess_name  = 'SESSID';
     static $cookie_key = 'PHPSESSID';
     static $sess_domain;
 
@@ -49,17 +49,13 @@ class Session
     public function start($readonly = false)
     {
         $this->isStart = true;
-        if ($this->use_php_session)
-        {
+        if ($this->use_php_session) {
             session_start();
-        }
-        else
-        {
+        } else {
             $this->readonly = $readonly;
-            $this->open = true;
-            $sessid = Cookie::get(self::$cookie_key);
-            if (empty($sessid))
-            {
+            $this->open     = true;
+            $sessid         = Cookie::get(self::$cookie_key);
+            if (empty($sessid)) {
                 $sessid = RandomKey::randmd5(40);
                 Cookie::set(self::$cookie_key, $sessid, self::$cookie_lifetime);
             }
@@ -67,11 +63,10 @@ class Session
         }
     }
 
-    function setId($session_id)
+    public function setId($session_id)
     {
         $this->sessID = $session_id;
-        if ($this->use_php_session)
-        {
+        if ($this->use_php_session) {
             session_id($session_id);
         }
     }
@@ -80,14 +75,11 @@ class Session
      * 获取SessionID
      * @return string
      */
-    function getId()
+    public function getId()
     {
-        if ($this->use_php_session)
-        {
+        if ($this->use_php_session) {
             return session_id();
-        }
-        else
-        {
+        } else {
             return $this->sessID;
         }
     }
@@ -95,13 +87,10 @@ class Session
     public function load($sessId)
     {
         $this->sessID = $sessId;
-        $data = $this->get($sessId);
-        if ($data)
-        {
+        $data         = $this->get($sessId);
+        if ($data) {
             return unserialize($data);
-        }
-        else
-        {
+        } else {
             return array();
         }
     }
@@ -116,9 +105,9 @@ class Session
      * @param   String  $pSessName
      * @return  Bool    TRUE/FALSE
      */
-    public function open($save_path='',$sess_name='')
+    public function open($save_path = '', $sess_name = '')
     {
-        self::$cache_prefix = $save_path.'_'.$sess_name;
+        self::$cache_prefix = $save_path . '_' . $sess_name;
         return true;
     }
     /**
@@ -139,12 +128,9 @@ class Session
     {
         $session = $this->cache->get(self::$cache_prefix . $sessId);
         //先读数据，如果没有，就初始化一个
-        if (!empty($session))
-        {
+        if (!empty($session)) {
             return $session;
-        }
-        else
-        {
+        } else {
             return array();
         }
     }
@@ -155,7 +141,7 @@ class Session
      * @param   String  $wData
      * @return  Bool    true/FALSE
      */
-    public function set($sessId, $session='')
+    public function set($sessId, $session = '')
     {
         $key = self::$cache_prefix . $sessId;
         $ret = $this->cache->set($key, $session, self::$cache_lifetime);
@@ -168,7 +154,7 @@ class Session
      */
     public function delete($sessId = '')
     {
-        return $this->cache->delete(self::$cache_prefix.$sessId);
+        return $this->cache->delete(self::$cache_prefix . $sessId);
     }
     /**
      * 内存回收
@@ -184,7 +170,7 @@ class Session
      * @param   NULL
      * @return  Bool  true/FALSE
      */
-    function initSess()
+    public function initSess()
     {
         //不使用 GET/POST 变量方式
         ini_set('session.use_trans_sid', 0);

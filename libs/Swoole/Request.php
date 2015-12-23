@@ -28,12 +28,12 @@ class Request
      */
     public $remote_port;
 
-    public $get = array();
-    public $post = array();
-    public $file = array();
-    public $cookie = array();
+    public $get     = array();
+    public $post    = array();
+    public $file    = array();
+    public $cookie  = array();
     public $session = array();
-    public $server = array();
+    public $server  = array();
 
     /**
      * @var \StdClass
@@ -51,49 +51,52 @@ class Request
     /**
      * 将原始请求信息转换到PHP超全局变量中
      */
-    function setGlobal()
+    public function setGlobal()
     {
-        if ($this->get)
-        {
+        if ($this->get) {
             $_GET = $this->get;
         }
-        if ($this->post)
-        {
+        if ($this->post) {
             $_POST = $this->post;
         }
-        if ($this->file)
-        {
+        if ($this->file) {
             $_FILES = $this->file;
         }
-        if ($this->cookie)
-        {
+        if ($this->cookie) {
             $_COOKIE = $this->cookie;
         }
-        if ($this->server)
-        {
+        if ($this->server) {
             $_SERVER = $this->server;
         }
         $_REQUEST = array_merge($this->get, $this->post, $this->cookie);
 
         $_SERVER['REQUEST_URI'] = $this->meta['uri'];
-        /**
-         * 将HTTP头信息赋值给$_SERVER超全局变量
-         */
-        foreach ($this->head as $key => $value)
-        {
-            $_key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
-            $_SERVER[$_key] = $value;
-        }
         $_SERVER['REMOTE_ADDR'] = $this->remote_ip;
     }
 
-    function unsetGlobal()
+    public function unsetGlobal()
     {
         $_REQUEST = $_SESSION = $_COOKIE = $_FILES = $_POST = $_SERVER = $_GET = array();
     }
 
-    function isWebSocket()
+    public function isWebSocket()
     {
         return isset($this->head['Upgrade']) && strtolower($this->head['Upgrade']) == 'websocket';
+    }
+
+    public function formatHeaderKeys()
+    {
+        // 处理http头里面的key,不同客户端传入的可能不标准
+        foreach ($this->head as $key => $value) {
+            $_keys = explode('-', $key);
+            foreach ($_keys as $n => $_key) {
+                $_keys[$n] = ucfirst(strtolower($_key));
+            }
+            $newKey              = implode('-', $_keys);
+            $this->head[$newKey] = $value;
+
+            $_serverKey                = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
+            $this->server[$_serverKey] = $value;
+        }
     }
 }

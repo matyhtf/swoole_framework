@@ -30,6 +30,16 @@ class MySQLi extends \mysqli implements Swoole\IDatabase
         return $this->insert_id;
     }
 
+    /**
+     * 参数为了兼容parent类，代码不会使用传入的参数作为配置
+     * @param null $_host
+     * @param null $user
+     * @param null $password
+     * @param null $database
+     * @param null $port
+     * @param null $socket
+     * @return bool
+     */
     function connect($_host = null, $user = null, $password = null, $database = null, $port = null, $socket = null)
     {
         $db_config = &$this->config;
@@ -131,6 +141,43 @@ class MySQLi extends \mysqli implements Swoole\IDatabase
     }
 
     /**
+     * 异步SQL
+     * @param $sql
+     * @return bool|\mysqli_result
+     */
+    function queryAsync($sql)
+    {
+        $result = false;
+        for ($i = 0; $i < 2; $i++)
+        {
+            $result = parent::query($sql, MYSQLI_ASYNC);
+            if ($result === false)
+            {
+                if ($this->errno == 2013 or $this->errno == 2006)
+                {
+                    $r = $this->checkConnection();
+                    if ($r === true)
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    Swoole\Error::info(__CLASS__." SQL Error", $this->errorMessage($sql));
+                    return false;
+                }
+            }
+            break;
+        }
+        if (!$result)
+        {
+            Swoole\Error::info(__CLASS__." SQL Error", $this->errorMessage($sql));
+            return false;
+        }
+        return $result;
+    }
+
+    /**
      * 检查数据库连接,是否有效，无效则重新建立
      */
     protected function checkConnection()
@@ -201,5 +248,15 @@ class MySQLiRecord implements Swoole\IDbRecord
     function free()
     {
         $this->result->free_result();
+    }
+
+    function __get($key)
+    {
+        return $this->result->$key;
+    }
+
+    function __call($func, $params)
+    {
+        return call_user_func_array(array($this->result, $func), $params);
     }
 }

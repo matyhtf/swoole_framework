@@ -78,4 +78,15 @@ class Db extends Swoole\Controller
         //上一页/下一页
         echo $pager->render();
     }
+
+    function codb()
+    {
+        $ret1 = $this->codb->query("show tables");
+        $ret2 = $this->codb->query("desc user_login");
+
+        $this->codb->wait(1.0);
+
+        var_dump($ret1->result->fetchall());
+        var_dump($ret2->result->fetchall());
+    }
 }

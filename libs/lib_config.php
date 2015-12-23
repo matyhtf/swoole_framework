@@ -42,7 +42,7 @@ function createModel($model_name)
  */
 function model($model_name, $db_key = 'master')
 {
-    return Swoole::getInstance()->model->$model_name($db_key);
+    return Swoole::getInstance()->model->loadModel($model_name, $db_key);
 }
 
 /**

@@ -60,9 +60,9 @@ class Database
     public $db_apt = null;
 
     const TYPE_MYSQL  = 1;
-    const TYPE_MYSQLI = 2;
+    const TYPE_MYSQLi = 2;
     const TYPE_PDO    = 3;
-    const TYPE_ADODB  = 4;
+    const TYPE_AdoDB  = 4;
 
     public function __construct($db_config)
     {
@@ -70,7 +70,7 @@ class Database
             case self::TYPE_MYSQL:
                 $this->_db = new Database\MySQL($db_config);
                 break;
-            case self::TYPE_MYSQLI:
+            case self::TYPE_MYSQLi:
                 $this->_db = new Database\MySQLi($db_config);
                 break;
             default:
@@ -85,7 +85,7 @@ class Database
      */
     public function __init()
     {
-        $this->checkStatus();
+        $this->check_status();
         $this->db_apt->init();
         $this->read_times  = 0;
         $this->write_times = 0;
@@ -94,7 +94,7 @@ class Database
     /**
      * 检查连接状态，如果连接断开，则重新连接
      */
-    public function checkStatus()
+    public function check_status()
     {
         if (!$this->_db->ping()) {
             $this->_db->close();
