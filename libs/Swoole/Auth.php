@@ -47,7 +47,7 @@ class Auth
     const HASH_SHA1 = 'sha1';
     const HASH_CRYPT = 'crypt';
 
-    function __construct($config)
+    public function __construct($config)
     {
         $this->config = $config;
         if (empty($config['login_table']))
@@ -68,26 +68,25 @@ class Auth
         $_SESSION[self::$session_prefix . 'save_key'] = array();
     }
 
-    function saveUserinfo($key='userinfo')
+    public function saveUserinfo($key = 'userinfo')
     {
-        $_SESSION[self::$session_prefix.$key] = $this->user;
-        $_SESSION[self::$session_prefix.'save_key'][] = self::$session_prefix.$key;
+        $_SESSION[self::$session_prefix . $key] = $this->user;
+        $_SESSION[self::$session_prefix . 'save_key'][] = self::$session_prefix . $key;
     }
     /**
      * 更新用户信息
      * @param $set
      * @return bool
      */
-    function updateStatus($set = null)
+    public function updateStatus($set = null)
     {
-        if (empty($set))
-        {
+        if (empty($set)) {
             $set = array(self::$lastlogin => date('Y-m-d H:i:s'), self::$lastip => Client::getIP());
         }
         return $this->db->update($this->user['id'], $set, $this->login_table);
     }
 
-    function setSession($key)
+    public function setSession($key)
     {
         $_SESSION[$key] = $this->user[$key];
         $_SESSION[self::$session_prefix . 'save_key'][] = self::$session_prefix . $key;
@@ -97,17 +96,25 @@ class Auth
      * 获取登录用户的UID
      * @return int
      */
-    function getUid()
+    public function getUid()
     {
-        return $_SESSION[self::$session_prefix.'user_id'];
+        return $_SESSION[self::$session_prefix . 'user_id'];
     }
 
     /**
      * 获取登录用户的信息
      * @return array
      */
-    function getUserInfo($key = 'userinfo')
+    public function getUserInfo($key = 'userinfo')
     {
+        if (empty($this->user)) {
+            $this->user = $_SESSION[self::$session_prefix . $key];
+            if (empty($this->user)) {
+                $uid = $this->getUid();
+                $this->user = $this->db->query('SELECT ' . $this->select . ' FROM ' . $this->login_table . " WHERE " . self::$userid . "='$uid' LIMIT 1")->fetch();
+            }
+            $this->saveUserinfo();
+        }
         return $this->user;
     }
 
@@ -118,30 +125,24 @@ class Auth
      * @param bool $auto_login 是否自动登录
      * @return bool
      */
-    function login($username, $password, $auto_login = false)
+    public function login($username, $password, $auto_login = false)
     {
         Cookie::set(self::$session_prefix . 'username', $username, time() + self::$cookie_life, '/');
-        $this->user = $this->db->query('select ' . $this->select . ' from ' . $this->login_table . " where " . self::$username . "='$username' limit 1")->fetch();
-        if (empty($this->user))
-        {
+        $this->user = $this->db->query('SELECT ' . $this->select . ' FROM ' . $this->login_table . " WHERE " . self::$username . "='$username' LIMIT 1")->fetch();
+        if (empty($this->user)) {
             $this->errCode = self::ERR_NO_EXIST;
             return false;
-        }
-        else
-        {
+        } else {
             //验证密码是否正确
-            if (self::verifyPassword($username, $password, $this->user[self::$password]))
-            {
+            if (self::verifyPassword($username, $password, $this->user[self::$password])) {
                 $_SESSION[self::$session_prefix . 'isLogin'] = true;
                 $_SESSION[self::$session_prefix . 'user_id'] = $this->user['id'];
-                if ($auto_login)
-                {
+                $this->saveUserinfo();
+                if ($auto_login) {
                     $this->autoLogin();
                 }
                 return true;
-            }
-            else
-            {
+            } else {
                 $this->errCode = self::ERR_PASSWORD;
                 return false;
             }
@@ -152,14 +153,11 @@ class Auth
      * 检查是否登录
      * @return bool
      */
-    function isLogin()
+    public function isLogin()
     {
-        if (isset($_SESSION[self::$session_prefix . 'isLogin']) and $_SESSION[self::$session_prefix . 'isLogin'] == 1)
-        {
+        if (isset($_SESSION[self::$session_prefix . 'isLogin']) and $_SESSION[self::$session_prefix . 'isLogin'] == 1) {
             return true;
-        }
-        elseif (isset($_COOKIE[self::$session_prefix . 'autologin']) and isset($_COOKIE[self::$session_prefix . 'username']) and isset($_COOKIE[self::$session_prefix . 'password']))
-        {
+        } elseif (isset($_COOKIE[self::$session_prefix . 'autologin']) and isset($_COOKIE[self::$session_prefix . 'username']) and isset($_COOKIE[self::$session_prefix . 'password'])) {
             return $this->login($_COOKIE[self::$session_prefix . 'username'], $_COOKIE[self::$session_prefix . 'password'], $auto = 1);
         }
         return false;
@@ -169,7 +167,7 @@ class Auth
      * @param $user
      * @return unknown_type
      */
-    function autoLogin()
+    public function autoLogin()
     {
         Cookie::set(self::$session_prefix . 'autologin', 1, time() + self::$cookie_life, '/');
         Cookie::set(self::$session_prefix . 'username', $this->user['username'], time() + self::$cookie_life, '/');
@@ -184,27 +182,23 @@ class Auth
      * @return bool
      * @throws \Exception
      */
-    function changePassword($uid, $old_pwd, $new_pwd)
+    public function changePassword($uid, $old_pwd, $new_pwd)
     {
         $table = table($this->login_table, $this->login_db);
         $table->primary = self::$userid;
         $_res = $table->gets(array('select' => self::$username . ',' . self::$password, 'limit' => 1, self::$userid => $uid));
-        if (count($_res) < 1)
-        {
+        if (count($_res) < 1) {
             $this->errMessage = '用户不存在';
             $this->errCode = 1;
             return false;
         }
 
         $user = $_res[0];
-        if ($user[self::$password] != self::makePasswordHash($user[self::$username], $old_pwd))
-        {
+        if ($user[self::$password] != self::makePasswordHash($user[self::$username], $old_pwd)) {
             $this->errMessage = '原密码不正确';
             $this->errCode = 2;
             return false;
-        }
-        else
-        {
+        } else {
             $table->set($uid, array(self::$password => self::makePasswordHash($user[self::$username], $new_pwd)), self::$userid);
             return true;
         }
@@ -214,36 +208,31 @@ class Auth
      * 注销登录
      * @return bool
      */
-    function logout()
+    public function logout()
     {
         /**
          * 启动Session
          */
-        if (!\Swoole::$php->session->isStart)
-        {
+        if (!\Swoole::$php->session->isStart) {
             \Swoole::$php->session->start();
         }
         /**
          * 如果设置为true，退出登录时，销毁所有Session
          */
-        if (self::$session_destroy)
-        {
+        if (self::$session_destroy) {
             $_SESSION = array();
             return true;
         }
         unset($_SESSION[self::$session_prefix . 'isLogin']);
         unset($_SESSION[self::$session_prefix . 'user_id']);
 
-        if (!empty($_SESSION[self::$session_prefix . 'save_key']))
-        {
-            foreach ($_SESSION[self::$session_prefix . 'save_key'] as $sk)
-            {
+        if (!empty($_SESSION[self::$session_prefix . 'save_key'])) {
+            foreach ($_SESSION[self::$session_prefix . 'save_key'] as $sk) {
                 unset($_SESSION[$sk]);
             }
         }
         unset($_SESSION[self::$session_prefix . 'save_key']);
-        if (isset($_COOKIE[self::$session_prefix . 'password']))
-        {
+        if (isset($_COOKIE[self::$session_prefix . 'password'])) {
             Cookie::set(self::$session_prefix . 'password', '', 0, '/');
         }
         return true;
@@ -260,16 +249,12 @@ class Auth
     public static function verifyPassword($username, $input_password, $real_password)
     {
         //使用PHP内置的password
-        if (self::$password_hash == 'crypt')
-        {
-            if (!function_exists('password_verify'))
-            {
+        if (self::$password_hash == 'crypt') {
+            if (!function_exists('password_verify')) {
                 throw new \Exception("require password_verify function.");
             }
             return password_verify($input_password, $real_password);
-        }
-        else
-        {
+        } else {
             $pwd_hash = self::makePasswordHash($username, $input_password);
             return $real_password == $pwd_hash;
         }
@@ -285,15 +270,12 @@ class Auth
     public static function makePasswordHash($username, $password)
     {
         //sha1 用户名+密码
-        if (self::$password_hash == 'sha1')
-        {
+        if (self::$password_hash == 'sha1') {
             return sha1($username . $password);
         }
         //使用PHP内置的password
-        elseif(self::$password_hash == 'crypt')
-        {
-            if (!function_exists('password_hash'))
-            {
+        elseif (self::$password_hash == 'crypt') {
+            if (!function_exists('password_hash')) {
                 throw new \Exception("require password_hash function.");
             }
             $options = [
@@ -303,16 +285,11 @@ class Auth
             return password_hash($password, PASSWORD_BCRYPT, $options);
         }
         //md5 用户名+密码
-        elseif (self::$password_hash == 'md5')
-        {
+        elseif (self::$password_hash == 'md5') {
             return md5($username . $password);
-        }
-        elseif (self::$password_hash == 'sha1_single')
-        {
+        } elseif (self::$password_hash == 'sha1_single') {
             return sha1($password);
-        }
-        elseif (self::$password_hash == 'md5_single')
-        {
+        } elseif (self::$password_hash == 'md5_single') {
             return md5($password);
         }
         return false;
@@ -325,8 +302,7 @@ class Auth
     public static function loginRequire()
     {
         $user = \Swoole::$php->user;
-        if (!$user->isLogin())
-        {
+        if (!$user->isLogin()) {
             $login_url = $user->config['login_url'] . '?refer=' . urlencode($_SERVER["REQUEST_URI"]);
             \Swoole::$php->http->redirect($login_url);
             return false;
@@ -334,4 +310,3 @@ class Auth
         return true;
     }
 }
-

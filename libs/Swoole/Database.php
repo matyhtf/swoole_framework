@@ -1,5 +1,6 @@
 <?php
 namespace Swoole;
+
 /**
  * 数据库基类
  * @author Tianfeng.Han
@@ -15,10 +16,10 @@ namespace Swoole;
  */
 interface IDatabase
 {
-	function query($sql);
-	function connect();
-	function close();
-	function lastInsertId();
+    public function query($sql);
+    function connect();
+    function close();
+    function lastInsertId();
     function getAffectedRows();
     function errno();
     function quote($str);
@@ -32,8 +33,8 @@ interface IDatabase
  */
 interface IDbRecord
 {
-	function fetch();
-	function fetchall();
+    function fetch();
+    function fetchall();
 }
 
 /**
@@ -46,28 +47,27 @@ interface IDbRecord
  */
 class Database
 {
-	public $debug = false;
-	public $read_times = 0;
-	public $write_times = 0;
+    public $debug       = false;
+    public $read_times  = 0;
+    public $write_times = 0;
 
     /**
      * @var IDatabase
      */
-	public $_db = null;
+    public $_db = null;
     /**
      * @var \Swoole\SelectDB
      */
     public $db_apt = null;
 
-	const TYPE_MYSQL   = 1;
-	const TYPE_MYSQLi  = 2;
-	const TYPE_PDO     = 3;
-	const TYPE_AdoDB   = 4;
+    const TYPE_MYSQL  = 1;
+    const TYPE_MYSQLi = 2;
+    const TYPE_PDO    = 3;
+    const TYPE_AdoDB  = 4;
 
-    function __construct($db_config)
+    public function __construct($db_config)
     {
-        switch ($db_config['type'])
-        {
+        switch ($db_config['type']) {
             case self::TYPE_MYSQL:
                 $this->_db = new Database\MySQL($db_config);
                 break;
@@ -84,72 +84,70 @@ class Database
     /**
      * 初始化参数
      */
-    function __init()
+    public function __init()
     {
         $this->check_status();
         $this->db_apt->init();
-        $this->read_times = 0;
+        $this->read_times  = 0;
         $this->write_times = 0;
     }
 
-	/**
-	 * 检查连接状态，如果连接断开，则重新连接
-	 */
-	function check_status()
-	{
-		if(!$this->_db->ping())
-		{
-			$this->_db->close();
-			$this->_db->connect();
-		}
-	}
-	/**
-	 * 启动事务处理
-	 * @return bool
-	 */
-	function start()
-	{
-		return $this->query('START TRANSACTION');
-	}
+    /**
+     * 检查连接状态，如果连接断开，则重新连接
+     */
+    public function check_status()
+    {
+        if (!$this->_db->ping()) {
+            $this->_db->close();
+            $this->_db->connect();
+        }
+    }
+    /**
+     * 启动事务处理
+     * @return bool
+     */
+    public function start()
+    {
+        return $this->query('START TRANSACTION');
+    }
 
-	/**
-	 * 提交事务处理
-	 * @return bool
-	 */
-	function commit()
-	{
-		return $this->query('COMMIT');
-	}
+    /**
+     * 提交事务处理
+     * @return bool
+     */
+    public function commit()
+    {
+        return $this->query('COMMIT');
+    }
 
-	/**
-	 * 事务回滚
-	 * @return bool
-	 */
-	function rollback()
-	{
-		$this->query('ROLLBACK');
-	}
+    /**
+     * 事务回滚
+     * @return bool
+     */
+    public function rollback()
+    {
+        $this->query('ROLLBACK');
+    }
 
-	/**
-	 * 执行一条SQL语句
-	 * @param $sql
+    /**
+     * 执行一条SQL语句
+     * @param $sql
      * @return \Swoole\Database\MySQLiRecord
-	 */
+     */
     public function query($sql)
     {
-        if ($this->debug)
-        {
+        if ($this->debug) {
             echo "$sql<br />\n<hr />";
         }
         $this->read_times += 1;
         return $this->_db->query($sql);
     }
-	/**
-	 * 插入$data数据库的表$table，$data必须是键值对应的，$key是数据库的字段，$value是对应的值
-	 * @param $data
-	 * @param $table
-	 * @return int
-	 */
+    /**
+     * 插入$data数据库的表$table，$data必须是键值对应的，$key是数据库的字段，$value是对应的值
+     * @param $data
+     * @param $table
+     * @return int
+     */
     public function insert($data, $table)
     {
         $this->db_apt->init();
@@ -159,22 +157,21 @@ class Database
     }
 
     /**
-	 * 从$table删除一条$where为$id的记录
-	 * @param $id
-	 * @param $table
-	 * @param $where
-	 * @return \mysqli_result
-	 */
+     * 从$table删除一条$where为$id的记录
+     * @param $id
+     * @param $table
+     * @param $where
+     * @return \mysqli_result
+     */
     public function delete($id, $table, $where = 'id')
     {
-        if (func_num_args() < 2)
-        {
+        if (func_num_args() < 2) {
             Error::info('SelectDB param error', 'Delete must have 2 paramers ($id,$table) !');
         }
         $this->db_apt->init();
         $this->db_apt->from($table);
         $this->write_times += 1;
-        return $this->query("delete from $table where $where='$id'");
+        return $this->query("DELETE FROM $table WHERE $where='$id'");
     }
 
     /**
@@ -187,8 +184,7 @@ class Database
      */
     public function update($id, $data, $table, $where = 'id')
     {
-        if (func_num_args() < 3)
-        {
+        if (func_num_args() < 3) {
             echo Error::info('SelectDB param error', 'Update must have 3 paramers ($id,$data,$table) !');
             return false;
         }
@@ -199,13 +195,13 @@ class Database
         return $this->db_apt->update($data);
     }
 
-	/**
-	 * 根据主键获取单条数据
-	 * @param $id
-	 * @param $table
-	 * @param $primary
-	 * @return array
-	 */
+    /**
+     * 根据主键获取单条数据
+     * @param $id
+     * @param $table
+     * @param $primary
+     * @return array
+     */
     public function get($id, $table, $primary = 'id')
     {
         $this->db_apt->init();
@@ -220,7 +216,7 @@ class Database
      * @param array $args
      * @return mixed
      */
-    function __call($method, $args = array())
+    public function __call($method, $args = array())
     {
         return call_user_func_array(array($this->_db, $method), $args);
     }

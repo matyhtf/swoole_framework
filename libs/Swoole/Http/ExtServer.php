@@ -27,98 +27,82 @@ class ExtServer implements Swoole\IFace\Http
 
     static $gzip_extname = array('js' => true, 'css' => true, 'html' => true, 'txt' => true);
 
-    function __construct()
+    public function __construct()
     {
-        $mimes = require LIBPATH . '/data/mimes.php';
+        $mimes       = require LIBPATH . '/data/mimes.php';
         $this->mimes = $mimes;
         $this->types = array_flip($mimes);
     }
 
-    function header($k, $v)
+    public function header($k, $v)
     {
         $k = ucwords($k);
         $this->response->header($k, $v);
     }
 
-    function status($code)
+    public function status($code)
     {
         $this->response->status($code);
     }
 
-    function response($content)
+    public function response($content)
     {
         $this->finish($content);
     }
 
-    function redirect($url, $mode = 301)
+    public function redirect($url, $mode = 301)
     {
         $this->response->status($mode);
         $this->response->header('Location', $url);
     }
 
-    function finish($content = null)
+    public function finish($content = null)
     {
         $this->finish = true;
         $this->response->write($content);
         throw new Swoole\ResponseException;
     }
 
-    function getRequestBody()
+    public function getRequestBody()
     {
         return $this->request->rawContent();
     }
 
-    function setcookie($name, $value = null, $expire = null, $path = '/', $domain = null, $secure = null, $httponly = null)
+    public function setcookie($name, $value = null, $expire = null, $path = '/', $domain = null, $secure = null, $httponly = null)
     {
         $this->response->cookie($name, $value, $expire, $path, $domain, $secure, $httponly);
     }
 
-    function setGlobal()
+    public function setGlobal()
     {
-        if (isset($this->request->get))
-        {
+        if (isset($this->request->get)) {
             $_GET = $this->request->get;
-        }
-        else
-        {
+        } else {
             $_GET = array();
         }
-        if (isset($this->request->post))
-        {
+        if (isset($this->request->post)) {
             $_POST = $this->request->post;
-        }
-        else
-        {
+        } else {
             $_POST = array();
         }
-        if (isset($this->request->files))
-        {
+        if (isset($this->request->files)) {
             $_FILES = $this->request->files;
-        }
-        else
-        {
+        } else {
             $_FILES = array();
         }
-        if (isset($this->request->cookie))
-        {
+        if (isset($this->request->cookie)) {
             $_COOKIE = $this->request->cookie;
-        }
-        else
-        {
+        } else {
             $_COOKIE = array();
         }
-        if (isset($this->request->server))
-        {
-            foreach($this->request->server as $key => $value)
-            {
+        if (isset($this->request->server)) {
+            foreach ($this->request->server as $key => $value) {
                 $_SERVER[strtoupper($key)] = $value;
             }
-        }
-        else
-        {
+        } else {
             $_SERVER = array();
         }
-        $_REQUEST = array_merge($_GET, $_POST, $_COOKIE);
+        $_REQUEST               = array_merge($_GET, $_POST, $_COOKIE);
         $_SERVER['REQUEST_URI'] = $this->request->server['request_uri'];
         /**
          * 将HTTP头信息赋值给$_SERVER超全局变量
@@ -131,35 +115,30 @@ class ExtServer implements Swoole\IFace\Http
         $_SERVER['REMOTE_ADDR'] = $this->request->server['remote_addr'];
     }
 
-    function doStatic(\swoole_http_request $req, \swoole_http_response $resp)
+    public function doStatic(\swoole_http_request $req, \swoole_http_response $resp)
     {
-        $file = $this->document_root . $req->server['request_uri'];
+        $file    = $this->document_root . $req->server['request_uri'];
         $extname = Swoole\Upload::getFileExt($file);
-        if (empty($this->types[$extname]))
-        {
+        if (empty($this->types[$extname])) {
             $mime_type = 'text/html';
-        }
-        else
-        {
+        } else {
             $mime_type = $this->types[$extname];
         }
-        if (isset(self::$gzip_extname[$extname]))
-        {
+        if (isset(self::$gzip_extname[$extname])) {
             $resp->gzip();
         }
         $resp->header('Content-Type', $mime_type);
         $resp->end(file_get_contents($this->document_root . $req->server['request_uri']));
     }
 
-    function onRequest(\swoole_http_request $req, \swoole_http_response $resp)
+    public function onRequest(\swoole_http_request $req, \swoole_http_response $resp)
     {
-        if ($this->document_root and is_file($this->document_root . $req->server['request_uri']))
-        {
+        if ($this->document_root and is_file($this->document_root . $req->server['request_uri'])) {
             $this->doStatic($req, $resp);
             return;
         }
 
-        $this->request = $req;
+        $this->request  = $req;
         $this->response = $resp;
         $this->setGlobal();
 
@@ -170,39 +149,32 @@ class ExtServer implements Swoole\IFace\Http
             {
                 ob_start();
                 /*---------------------处理MVC----------------------*/
-                $body = $php->runMVC();
+                $body        = $php->runMVC();
                 $echo_output = ob_get_contents();
                 ob_end_clean();
-                $resp->end($echo_output.$body);
-            }
-            catch (Swoole\ResponseException $e)
-            {
-                if ($this->finish != 1)
-                {
+                $resp->end($echo_output . $body);
+            } catch (Swoole\ResponseException $e) {
+                if ($this->finish != 1) {
                     $resp->status(500);
                     $resp->end($e->getMessage());
                 }
             }
-        }
-        catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             $resp->status(500);
             $resp->end($e->getMessage() . "<hr />" . nl2br($e->getTraceAsString()));
         }
     }
 
-    function __clean()
+    public function __clean()
     {
         $php = Swoole::getInstance();
         //模板初始化
-        if (!empty($php->tpl))
-        {
+        if (!empty($php->tpl)) {
             $php->tpl->clear_all_assign();
         }
         //还原session
-        if (!empty($php->session))
-        {
-            $php->session->open = false;
+        if (!empty($php->session)) {
+            $php->session->open     = false;
             $php->session->readonly = false;
         }
     }
