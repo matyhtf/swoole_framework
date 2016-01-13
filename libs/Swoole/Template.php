@@ -30,6 +30,16 @@ class Template extends \Smarty
 		$this->clear_all_assign();
 	}
 
+	function assign_by_ref($tpl_var, &$value, $nocache = false)
+    {
+		return $this->assignByRef($tpl_var, $value, $nocache);
+	}
+
+	function clear_all_assign()
+    {
+        $this->clearAllAssign();
+    }
+
 	function set_template_dir($dir)
 	{
 		$this->template_dir = WEBPATH . '/' . $dir;
@@ -70,7 +80,7 @@ class Template extends \Smarty
 	    $this->_tpl_vars[$key] = &$value;
 	}
 
-	function display($template = null, $cache_id = null, $complile_id = null)
+	function display($template = null, $cache_id = null, $complile_id = null, $parent = NULL)
 	{
 		if ($template == null)
 		{

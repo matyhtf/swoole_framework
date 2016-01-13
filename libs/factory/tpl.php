@@ -15,7 +15,7 @@ else
 {
     $tpl->template_dir = WEBPATH . "/templates";
 }
-define('TPL_BASE', $tpl->template_dir);
+define('TPL_BASE', $tpl->template_dir[0]);
 if (DEBUG == 'on')
 {
     $tpl->compile_check = true;
