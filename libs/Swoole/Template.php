@@ -23,6 +23,9 @@ class Template extends \Smarty
 		$this->cache_dir = WEBPATH."/cache/pagecache";
 		$this->left_delimiter = "{{";
 		$this->right_delimiter = "}}";
+		//需要添加插件路径
+		$this->addPluginsDir(LIBPATH . '/module/smarty/plugins');
+		$this->addPluginsDir(LIBPATH . '/module/smarty/sysplugins');
 	}
 
 	function __init()
