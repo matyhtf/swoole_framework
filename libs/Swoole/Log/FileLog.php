@@ -15,45 +15,35 @@ class FileLog extends \Swoole\Log implements \Swoole\IFace\Log
     //待写入文件的日志队列（缓冲区）
     protected $queue = array();
     //是否记录更详细的信息（目前记多了文件名、行号）
-    protected $verbose = false;
+    protected $verbose      = false;
     protected $enable_cache = true;
     protected $date;
 
-    function __construct($config)
+    public function __construct($config)
     {
-        if (is_string($config))
-        {
-            $file = $config;
+        if (is_string($config)) {
+            $file   = $config;
             $config = array('file' => $file);
         }
 
-        $this->archive = isset($config['date']) && $config['date'] == true;
-        $this->verbose = isset($config['verbose']) && $config['verbose'] == true;
+        $this->archive      = isset($config['date']) && $config['date'] == true;
+        $this->verbose      = isset($config['verbose']) && $config['verbose'] == true;
         $this->enable_cache = isset($config['enable_cache']) ? (bool) $config['enable_cache'] : true;
 
         //按日期存储日志
-        if ($this->archive)
-        {
-            if (isset($config['dir']))
-            {
-                $this->date = date('Ymd');
-                $this->log_dir = rtrim($config['dir'], '/');
-                $this->log_file = $this->log_dir.'/'.$this->date.'.log';
+        if ($this->archive) {
+            if (isset($config['dir'])) {
+                $this->date     = date('Ymd');
+                $this->log_dir  = rtrim($config['dir'], '/');
+                $this->log_file = $this->log_dir . '/' . $this->date . '.log';
+            } else {
+                throw new \Exception(__CLASS__ . ": require \$config['dir']");
             }
-            else
-            {
-                throw new \Exception(__CLASS__.": require \$config['dir']");
-            }
-        }
-        else
-        {
-            if (isset($config['file']))
-            {
+        } else {
+            if (isset($config['file'])) {
                 $this->log_file = $config['file'];
-            }
-            else
-            {
-                throw new \Exception(__CLASS__.": require \$config[file]");
+            } else {
+                throw new \Exception(__CLASS__ . ": require \$config[file]");
             }
         }
 
@@ -76,26 +66,23 @@ class FileLog extends \Swoole\Log implements \Swoole\IFace\Log
         parent::__construct($config);
     }
 
-    function format($msg, $level, &$date = null)
+    public function format($msg, $level, &$date = null)
     {
         $level = self::convert($level);
-        if ($level < $this->level_line)
-        {
+        if ($level < $this->level_line) {
             return false;
         }
         $level_str = self::$level_str[$level];
 
-        $now = new \DateTime('now');
+        $now  = new \DateTime('now');
         $date = $now->format('Ymd');
-        $log = $now->format(self::$date_format)."\t{$level_str}\t{$msg}";
-        if ($this->verbose)
-        {
+        $log  = $now->format(self::$date_format) . "\t{$level_str}\t{$msg}";
+        if ($this->verbose) {
             $debug_info = debug_backtrace();
-            $file = isset($debug_info[1]['file']) ? $debug_info[1]['file'] : null;
-            $line = isset($debug_info[1]['line']) ? $debug_info[1]['line'] : null;
+            $file       = isset($debug_info[1]['file']) ? $debug_info[1]['file'] : null;
+            $line       = isset($debug_info[1]['line']) ? $debug_info[1]['line'] : null;
 
-            if ($file && $line)
-            {
+            if ($file && $line) {
                 $log .= "\t{$file}\t{$line}";
             }
         }
@@ -110,21 +97,19 @@ class FileLog extends \Swoole\Log implements \Swoole\IFace\Log
      * @param $level int 事件类型
      * @return bool
      */
-    function put($msg, $level = self::INFO)
+    public function put($msg, $level = self::INFO)
     {
         $msg = $this->format($msg, $level, $date);
 
-        if (!isset($this->queue[$date]))
-        {
+        if (!isset($this->queue[$date])) {
             $this->queue[$date] = array();
         }
         $this->queue[$date][] = $msg;
 
         // 如果没有开启缓存，直接将缓冲区的内容写入文件
         // 如果缓冲区内容日志条数达到一定程度，写入文件
-        if (count($this->queue,  COUNT_RECURSIVE) >= 11
-            || $this->enable_cache == false)
-        {
+        if (count($this->queue, COUNT_RECURSIVE) >= 11
+            || $this->enable_cache == false) {
             $this->flush();
         }
     }
@@ -132,25 +117,22 @@ class FileLog extends \Swoole\Log implements \Swoole\IFace\Log
     /**
      * 将日志队列（缓冲区）的日志写入文件
      */
-    function flush()
+    public function flush()
     {
-        if (empty($this->queue))
-        {
+        if (empty($this->queue)) {
             return;
         }
 
-        foreach ($this->queue as $date => $logs)
-        {
-            $date = strval($date);
+        foreach ($this->queue as $date => $logs) {
+            $date    = strval($date);
             $log_str = implode('', $logs);
 
             // 按日期存储日志的情况下，如果日期变化（第二天）
             // 重新设置一下log文件和文件指针
-            if ($this->archive && $this->date != $date)
-            {
+            if ($this->archive && $this->date != $date) {
                 fclose($this->fp);
-                $this->date = $date;
-                $this->log_file = $this->log_dir.'/'.$this->date.'.log';
+                $this->date     = $date;
+                $this->log_file = $this->log_dir . '/' . $this->date . '.log';
                 $this->fp = $this->openFile($this->log_file);
             }
 
@@ -190,7 +172,7 @@ class FileLog extends \Swoole\Log implements \Swoole\IFace\Log
         return $fp;
     }
 
-    function __destruct()
+    public function __destruct()
     {
         $this->flush();
     }
