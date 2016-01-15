@@ -563,8 +563,11 @@ class Swoole
         //doAction
         $return = $controller->$method($param);
         //保存Session
-        if (defined('SWOOLE_SERVER') and $this->session->open and $this->session->readonly === false)
-        {
+        if ((defined('SWOOLE_SERVER')
+            || $this->config['session']['use_swoole_session'])
+            && $this->session->open
+            && $this->session->readonly === false
+        ) {
             $this->session->save();
         }
         //响应请求
