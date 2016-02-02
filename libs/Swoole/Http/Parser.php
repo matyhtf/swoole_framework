@@ -59,7 +59,10 @@ class Parser
             $_h = trim($_h);
             if (empty($_h)) continue;
             $_r = explode(':', $_h, 2);
-            $key = $_r[0];
+            // 头字段名称首字母大写
+            $keys = explode('-', $_r[0]);
+            $keys = array_map("ucfirst", $keys);
+            $key = implode('-', $keys);
             $value = isset($_r[1])?$_r[1]:'';
             $header[trim($key)] = trim($value);
         }

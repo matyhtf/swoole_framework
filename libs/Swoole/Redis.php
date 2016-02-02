@@ -49,18 +49,8 @@ class Redis
 
     function __construct($config)
     {
-        $this->_redis = new \Redis();
         $this->config = $config;
         $this->connect();
-
-        if (!empty($this->config['password']))
-        {
-            $this->_redis->auth($this->config['password']);
-        }
-        if (!empty($this->config['database']))
-        {
-            $this->_redis->select($this->config['database']);
-        }
     }
 
     function connect()
@@ -74,11 +64,20 @@ class Redis
             $this->_redis = new \Redis();
             if ($this->config['pconnect'])
             {
-                return $this->_redis->pconnect($this->config['host'], $this->config['port'], $this->config['timeout']);
+                $this->_redis->pconnect($this->config['host'], $this->config['port'], $this->config['timeout']);
             }
             else
             {
-                return $this->_redis->connect($this->config['host'], $this->config['port'], $this->config['timeout']);
+                $this->_redis->connect($this->config['host'], $this->config['port'], $this->config['timeout']);
+            }
+            
+            if (!empty($this->config['password']))
+            {
+                $this->_redis->auth($this->config['password']);
+            }
+            if (!empty($this->config['database']))
+            {
+                $this->_redis->select($this->config['database']);
             }
         }
         catch (\RedisException $e)
