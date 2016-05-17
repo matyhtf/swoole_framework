@@ -30,6 +30,11 @@ class Controller extends Object
             define('TPL_PATH', $this->template_dir);
         }
         if ($this->if_filter) Filter::request();
+	if(isset($_SERVER['HTTP_X_REQUESTED_WITH'])){
+		if('xmlhttprequest' == strtolower($_SERVER['HTTP_X_REQUESTED_WITH'])){
+			$this->is_ajax = true;
+		}
+        }
         $swoole->__init();
     }
 
