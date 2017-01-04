@@ -613,6 +613,14 @@ class SelectDB
     }
 
     /**
+     * @param $param
+     */
+    function bind($param)
+    {
+        $this->db->_db->bind_params = $param;
+    }
+
+    /**
      * @param $method
      * @param $param
      * @return bool
@@ -629,7 +637,13 @@ class SelectDB
         {
             if (is_array($param))
             {
-                call_user_func_array(array($this, $method), $param);
+                if ($method == 'bind')
+                {
+                    $this->$method($param);
+                } else {
+                    call_user_func_array(array($this, $method), $param);
+                }
+
             }
             else
             {
