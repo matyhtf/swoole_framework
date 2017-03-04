@@ -52,7 +52,7 @@ class Session
             return;
         }
 
-        if (!empty('cache_id'))
+        if (!empty($config['cache_id']))
         {
             $this->cache = Factory::getCache($config['cache_id']);
         }
