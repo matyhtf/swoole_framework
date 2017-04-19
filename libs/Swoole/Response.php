@@ -16,13 +16,17 @@ class Response
         101 => "101 Switching Protocols",
         200 => "200 OK",
         201 => "201 Created",
+        202 => 'Accepted',
+        203 => 'Non-Authoritative Information',
         204 => "204 No Content",
+        205 => 'Reset Content',
         206 => "206 Partial Content",
         300 => "300 Multiple Choices",
         301 => "301 Moved Permanently",
         302 => "302 Found",
         303 => "303 See Other",
         304 => "304 Not Modified",
+        305 => 'Use Proxy',
         307 => "307 Temporary Redirect",
         400 => "400 Bad Request",
         401 => "401 Unauthorized",
@@ -30,8 +34,12 @@ class Response
         404 => "404 Not Found",
         405 => "405 Method Not Allowed",
         406 => "406 Not Acceptable",
+        407 => 'Proxy Authentication Required',
         408 => "408 Request Timeout",
+        409 => 'Conflict',
         410 => "410 Gone",
+        411 => 'Length Required',
+        412 => 'Precondition Failed',
         413 => "413 Request Entity Too Large",
         414 => "414 Request URI Too Long",
         415 => "415 Unsupported Media Type",
@@ -39,7 +47,10 @@ class Response
         417 => "417 Expectation Failed",
         500 => "500 Internal Server Error",
         501 => "501 Method Not Implemented",
+        502 => 'Bad Gateway',
         503 => "503 Service Unavailable",
+        504 => 'Gateway Timeout',
+        505 => 'HTTP Version Not Supported',
         506 => "506 Variant Also Negotiates",
     );
 
@@ -167,6 +178,14 @@ class Response
     {
         $this->head['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0';
         $this->head['Pragma'] = 'no-cache';
+    }
+
+    //输出浏览器无缓存的HTTP状态头
+    function nocacheHeaders(){
+        @header( 'Expires: Wed, 11 Jan 1984 05:00:00 GMT' );
+        @header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s' ) . ' GMT' );
+        @header( 'Cache-Control: no-cache, must-revalidate, max-age=0' );
+        @header( 'Pragma: no-cache' );
     }
 }
 
