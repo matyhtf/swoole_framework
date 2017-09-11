@@ -120,6 +120,11 @@ class Swoole
     protected $commands = array();
 
     /**
+     * 捕获异常
+     */
+    protected $catchers = array();
+
+    /**
      * 对象池
      * @var array
      */
@@ -758,7 +763,37 @@ class Swoole
             call_user_func(array($controller, '__beforeAction'), $mvc);
         }
         //do action
-        $return = $controller->$method($param);
+        try
+        {
+            $return = $controller->$method($param);
+        }
+        catch (\Exception $e)
+        {
+            $catched = false;
+            foreach ($this->catchers as $k => $v)
+            {
+                if (call_user_func($v['handler'], $e) === false)
+                {
+                    continue;
+                }
+                else
+                {
+                    $catched = true;
+                }
+            }
+            //移除非永久的捕获器
+            foreach ($this->catchers as $k => $v)
+            {
+                if (!$v['persistent'])
+                {
+                    unset($this->catchers[$k]);
+                }
+            }
+            if (!$catched)
+            {
+                throw $e;
+            }
+        }
         //magic method
         if (method_exists($controller, '__afterAction'))
         {
@@ -799,6 +834,11 @@ class Swoole
         {
             throw new Swoole\Exception\InvalidParam("class[$class] not instanceof " . ' Symfony\Component\Console\Command\Command');
         }
+    }
+
+    function addCatcher(callable $catcher, $persistent = false)
+    {
+        $this->catchers[] = ['handler' => $catcher, 'persistent' => $persistent];
     }
 
     /**

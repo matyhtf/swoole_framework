@@ -119,6 +119,9 @@ class FileLog extends \Swoole\Log implements \Swoole\IFace\Log
     function put($msg, $level = self::INFO)
     {
         $msg = $this->format($msg, $level, $date);
+        if ($msg === false) {
+            return false;
+        }
 
         if (!isset($this->queue[$date]))
         {

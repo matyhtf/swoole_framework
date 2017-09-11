@@ -124,7 +124,6 @@ class Parser
      * @param $part
      * @param $request Swoole\Request
      * @param $cd
-     * @return unknown_type
      */
     static function parseFormData(Swoole\Request $request, $cd)
     {
@@ -132,30 +131,49 @@ class Parser
         $form = explode($cd, rtrim($request->body, "-")); //去掉末尾的--
         foreach ($form as $f)
         {
-            if ($f === '') continue;
+            if ($f === '')
+            {
+                continue;
+            }
             $parts = explode("\r\n\r\n", trim($f));
             $header = self::parseHeaderLine($parts[0]);
-            if (!isset($header['Content-Disposition'])) continue;
+            if (!isset($header['Content-Disposition']))
+            {
+                continue;
+            }
             $meta = self::parseParams($header['Content-Disposition']);
             //filename字段表示它是一个文件
             if (!isset($meta['filename']))
             {
-                if(count($parts) < 2) $parts[1] = "";
+                if (count($parts) < 2)
+                {
+                    $parts[1] = "";
+                }
                 //支持checkbox
-                if (substr($meta['name'], -2) === '[]') $request->post[substr($meta['name'], 0, -2)][] = trim($parts[1]);
-                else $request->post[$meta['name']] = trim($parts[1], "\r\n");
+                if (substr($meta['name'], -2) === '[]')
+                {
+                    $request->post[substr($meta['name'], 0, -2)][] = trim($parts[1]);
+                }
+                else
+                {
+                    $request->post[$meta['name']] = trim($parts[1], "\r\n");
+                }
             }
             else
             {
-                $file = trim($parts[1]);
                 $tmp_file = tempnam('/tmp', 'sw');
-                file_put_contents($tmp_file, $file);
-                if (!isset($meta['name'])) $meta['name'] = 'file';
-                $request->files[$meta['name']] = array('name' => $meta['filename'],
+                file_put_contents($tmp_file, $parts[1]);
+                if (!isset($meta['name']))
+                {
+                    $meta['name'] = 'file';
+                }
+                $request->files[$meta['name']] = array(
+                    'name' => $meta['filename'],
                     'type' => $header['Content-Type'],
-                    'size' => strlen($file),
+                    'size' => strlen($parts[1]),
                     'error' => UPLOAD_ERR_OK,
-                    'tmp_name' => $tmp_file);
+                    'tmp_name' => $tmp_file,
+                );
             }
         }
     }

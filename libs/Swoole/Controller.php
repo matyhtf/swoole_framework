@@ -1,5 +1,8 @@
 <?php
 namespace Swoole;
+
+use Swoole\Exception\InvalidParam;
+
 /**
  * Controller的基类，控制器基类
  */
@@ -247,6 +250,109 @@ HTMLS;
         }
 
         return $html;
+    }
+
+    function validate(&$data, $params)
+    {
+        foreach ($params as $k => $v)
+        {
+            if ($v instanceof \Closure)
+            {
+                $ret = call_user_func($v, $data[$k]);
+                if ($ret === false)
+                {
+                    $e = new Exception\InvalidParam("verification failed.", InvalidParam::ERROR_USER_DEFINED);
+                    $e->key = $k;
+                    throw $e;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
+            $s = new StringObject($v);
+            $conds = $s->split('|');
+
+            if ($conds->contains('required'))
+            {
+                if (!isset($data[$k]))
+                {
+                    $e = new Exception\InvalidParam("Parameter [$k] is required.", InvalidParam::ERROR_REQUIRED);
+                    $e->key = $k;
+                    throw $e;
+                }
+            }
+            else
+            {
+                if (!isset($data[$k]))
+                {
+                    continue;
+                }
+            }
+
+            if ($conds->contains('numeric') and !is_numeric($data[$k]))
+            {
+                type_incorrectly:
+                $e = new Exception\InvalidParam("Parameter [$k] type is incorrectly.", InvalidParam::ERROR_TYPE_INCORRECTLY);
+                $e->key = $k;
+                throw $e;
+            }
+            //日期
+            if ($conds->contains('date') and Validate::check('date', $data[$k]) === false)
+            {
+                goto type_incorrectly;
+            }
+            if ($conds->contains('date'))
+            {
+                var_dump(Validate::check('date', $data[$k]), $data[$k]);
+            }
+            //时间
+            if ($conds->contains('time') and Validate::check('time', $data[$k]) === false)
+            {
+                goto type_incorrectly;
+            }
+            //日期时间
+            if ($conds->contains('datetime') and Validate::check('datetime', $data[$k]) === false)
+            {
+                goto type_incorrectly;
+            }
+            //EMAIL
+            if ($conds->contains('email') and Validate::check('email', $data[$k]) === false)
+            {
+                goto type_incorrectly;
+            }
+            //mobile
+            if ($conds->contains('mobile') and Validate::check('mobile', $data[$k]) === false)
+            {
+                goto type_incorrectly;
+            }
+            //tel
+            if ($conds->contains('tel') and Validate::check('tel', $data[$k]) === false)
+            {
+                goto type_incorrectly;
+            }
+            //url
+            if ($conds->contains('url') and Validate::check('url', $data[$k]) === false)
+            {
+                goto type_incorrectly;
+            }
+            //version
+            if ($conds->contains('version') and Validate::check('version', $data[$k]) === false)
+            {
+                goto type_incorrectly;
+            }
+            //整型
+            if ($conds->contains('int'))
+            {
+                $data[$k] = intval($data[$k]);
+            }
+            //浮点型
+            if ($conds->contains('float'))
+            {
+                $data[$k] = floatval($data[$k]);
+            }
+        }
     }
 
     function __destruct()

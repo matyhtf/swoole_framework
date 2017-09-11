@@ -249,7 +249,7 @@ class Auth
         else
         {
             $pwd_hash = self::makePasswordHash($username, $input_password);
-            return $real_password == $pwd_hash;
+            return $real_password === $pwd_hash;
         }
     }
 
