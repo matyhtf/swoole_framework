@@ -56,7 +56,7 @@ class PageCache
         {
             return false;
         }
-        elseif (filemtime($file) + $this->expire < time())
+        elseif (filemtime($file) + $this->expire >= time())
         {
             return false;
         }
