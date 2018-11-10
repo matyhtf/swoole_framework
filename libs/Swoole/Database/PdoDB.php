@@ -14,6 +14,11 @@ class PdoDB extends \PDO implements Swoole\IDatabase
     protected $config;
 
     /**
+     * @var array
+     */
+    public $bind_params = array();
+
+    /**
      * @var \PDOStatement
      */
     protected $lastStatement;
@@ -57,17 +62,29 @@ class PdoDB extends \PDO implements Swoole\IDatabase
         {
             echo "$sql<br />\n<hr />";
         }
-        $res = parent::query($sql) or \Swoole\Error::info(
-            "SQL Error",
-            implode(", ", $this->errorInfo()) . "<hr />$sql"
-        );
-        $this->lastStatement = $res;
-        //非查询语句直接返回结果
-        if ($sql[0] !== 's')
+        if (!$this->bind_params)
         {
-            return !empty($res);
+            $res = parent::query($sql) or \Swoole\Error::info(
+                "SQL Error",
+                implode(", ", $this->errorInfo()) . "<hr />$sql"
+            );
+            $this->lastStatement = $res;
+            //非查询语句直接返回结果
+            if ($sql[0] !== 's')
+            {
+                return !empty($res);
+            }
+            return $res;
+        } else {
+            $stmt = $this->prepare($sql);
+            if ($stmt->execute($this->bind_params))
+            {
+                $this->lastStatement = $stmt;
+                return $stmt;
+            }
+            return false;
         }
-        return $res;
+
     }
 
     /**
