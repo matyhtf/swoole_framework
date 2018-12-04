@@ -177,4 +177,15 @@ class JS
         $js .= "else history.go(-1);\n";
         return self::echojs($js);
     }
+    
+    /**
+     * 返回上级页面并刷新
+     * @param $msg
+     *
+     * @return string
+     */
+    static function js_backreload($msg)
+    {
+        return self::echojs("alert('$msg');\nself.location=document.referrer;\n");
+    }
 }
