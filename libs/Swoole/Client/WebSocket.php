@@ -6,7 +6,7 @@ use Swoole;
 class WebSocket
 {
     const VERSION = '0.1.4';
-    const TOKEN_LENGHT = 16;
+    const TOKEN_LENGTH = 16;
 
     const TYPE_ID_WELCOME = 0;
     const TYPE_ID_PREFIX = 1;
@@ -61,7 +61,7 @@ class WebSocket
         $this->host = $host;
         $this->port = $port;
         $this->path = $path;
-        $this->key = $this->generateToken(self::TOKEN_LENGHT);
+        $this->key = $this->generateToken(self::TOKEN_LENGTH);
         $this->parser = new Swoole\Http\WebSocketParser();
     }
 
@@ -361,7 +361,7 @@ class WebSocket
         array_push($useChars, rand(0, 9), rand(0, 9), rand(0, 9));
         shuffle($useChars);
         $randomString = trim(implode('', $useChars));
-        $randomString = substr($randomString, 0, self::TOKEN_LENGHT);
+        $randomString = substr($randomString, 0, self::TOKEN_LENGTH);
 
         return base64_encode($randomString);
     }
