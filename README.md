@@ -2,6 +2,11 @@ SPF 框架
 ----
 SPF （`Swoole PHP Framework`），世界第一款基于Swoole扩展的PHP框架，开发者是Swoole创始人。
 
+环境要求
+----
+- php7.2+
+- swoole extension 4.4+
+
 创建工程
 ----
 ```
