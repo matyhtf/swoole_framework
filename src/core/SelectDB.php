@@ -648,7 +648,18 @@ class SelectDB
                 list($key, $value) = each($call);
                 if (strpos($key, '_') !== 0)
                 {
-                    $this->_call($key, $value);
+                    //处理join多表查询
+                    if (strpos($key, 'join') !== false) {
+                        if (is_array($value)) {
+                            foreach ($value as $v) {
+                                $this->_call($key, $v);
+                            }
+                        } else {
+                            $this->_call($key, $value);
+                        }
+                    } else {
+                        $this->_call($key, $value);
+                    }
                 }
                 else
                 {
