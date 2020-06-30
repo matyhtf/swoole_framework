@@ -82,6 +82,7 @@ class Request
         $this->cookie = $_COOKIE;
         $this->server = $_SERVER;
         $this->request = $_REQUEST;
+        $this->files = $_FILES;
     }
 
     function unsetGlobal()
