@@ -49,6 +49,7 @@ class Database
 	public $debug = false;
 	public $read_times = 0;
 	public $write_times = 0;
+	public $last_sql = '';
 
     /**
      * @var IDatabase
@@ -164,6 +165,7 @@ class Database
      */
     public function query($sql)
     {
+    	$this->last_sql = $sql;
         if ($this->debug)
         {
             echo "$sql<br />\n<hr />";
