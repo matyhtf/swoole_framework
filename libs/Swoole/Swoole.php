@@ -999,7 +999,7 @@ class Swoole
         }
         if (defined('SWOOLE_SERVER'))
         {
-            return $return;
+            return is_string($return) ? $return : '';
         }
         else
         {
