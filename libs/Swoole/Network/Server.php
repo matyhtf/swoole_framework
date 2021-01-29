@@ -183,7 +183,8 @@ class Server extends Base implements Driver
             //已存在ServerPID，并且进程存在
             if (!empty($server_pid) and \Swoole::$php->os->kill($server_pid, 0))
             {
-                exit("Server is already running.\n");
+                if($server_pid != posix_getpid())
+                    exit("Server is already running.\n");
             }
         }
         else
