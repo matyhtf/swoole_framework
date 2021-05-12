@@ -11,8 +11,8 @@
     "socket",
     "framework"
   ],
-  "homepage": "http://www.swoole.com/",
-  "license": "LGPL",
+  "homepage": "https://www.swoole.com/",
+  "license": "Apache-2.0",
   "autoload": {
     "psr-4": {
       "SPF\\": "src/core"
@@ -27,7 +27,7 @@
   "minimum-stability": "dev",
   "require": {
     "filp/whoops": "^2.2",
-    "Symfony/Console": "^4.1",
+    "symfony/console": "^4.1",
     "ext-swoole": ">=4.4",
     "ext-pdo": "*",
     "ext-mysqli": "*"
