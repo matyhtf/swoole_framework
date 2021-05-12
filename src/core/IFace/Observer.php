@@ -1,5 +1,5 @@
 <?php
-namespace SPF;
+namespace SPF\IFace;
 
 interface Observer
 {
